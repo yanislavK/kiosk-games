@@ -52,6 +52,16 @@ export const GAMES: GameDefinition[] = [
     available: true,
   },
   {
+    id: 'trafficquiz',
+    title: 'KVÍZ O DOPRAVE',
+    subtitle: 'Vyber správnu odpoveď!',
+    description: '10 otázok o dopravných predpisoch, značkách a pravidlách cestnej premávky.',
+    color: '#d97706',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    icon: '🚦',
+    available: true,
+  },
+  {
     id: 'matching',
     title: 'PAMIATKY',
     subtitle: 'Spárujte city landmarks!',
