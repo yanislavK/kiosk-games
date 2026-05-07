@@ -5,11 +5,12 @@ import HomeScreen from './screens/HomeScreen';
 import TicTacToeScreen from './screens/TicTacToeScreen';
 import QuizScreen from './screens/QuizScreen';
 import MemoryScreen from './screens/MemoryScreen';
+import PuzzleScreen from './screens/PuzzleScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import AboutScreen from './screens/AboutScreen';
 
 type NavTab = 'home' | 'leaderboard' | 'about';
-type GameScreen = 'tictactoe' | 'quiz' | 'memory' | null;
+type GameScreen = 'tictactoe' | 'quiz' | 'memory' | 'puzzle' | null;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
@@ -36,6 +37,7 @@ export default function App() {
     if (gameId === 'tictactoe') setActiveGame('tictactoe');
     if (gameId === 'quiz') setActiveGame('quiz');
     if (gameId === 'memory') setActiveGame('memory');
+    if (gameId === 'puzzle') setActiveGame('puzzle');
   };
 
   const handleNavigation = (tab: NavTab) => {
@@ -52,6 +54,9 @@ export default function App() {
     }
     if (activeGame === 'memory') {
       return <MemoryScreen onBack={() => setActiveGame(null)} />;
+    }
+    if (activeGame === 'puzzle') {
+      return <PuzzleScreen onBack={() => setActiveGame(null)} />;
     }
     switch (activeTab) {
       case 'home':
