@@ -52,6 +52,16 @@ export const GAMES: GameDefinition[] = [
     available: true,
   },
   {
+    id: 'mathquiz',
+    title: 'MATEMATIKA',
+    subtitle: 'Vypočítaj príklady!',
+    description: 'Sčítanie, odčítanie, násobenie, delenie. Séria správnych odpovedí = bonusové body!',
+    color: '#0891b2',
+    gradient: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+    icon: '🧮',
+    available: true,
+  },
+  {
     id: 'trafficquiz',
     title: 'KVÍZ O DOPRAVE',
     subtitle: 'Vyber správnu odpoveď!',
