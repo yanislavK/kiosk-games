@@ -52,6 +52,16 @@ export const GAMES: GameDefinition[] = [
     available: true,
   },
   {
+    id: 'stack',
+    title: 'STACK',
+    subtitle: 'Postav čo najvyššiu vežu!',
+    description: 'Bloky sa pohybujú nad vežou – tapni a polož ich čo najpresnejšie!',
+    color: '#06b6d4',
+    gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+    icon: '🏗️',
+    available: true,
+  },
+  {
     id: 'mathquiz',
     title: 'MATEMATIKA',
     subtitle: 'Vypočítaj príklady!',
