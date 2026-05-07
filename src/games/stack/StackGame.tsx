@@ -70,7 +70,11 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const N = blocksRef.current.length;
-    const cam = WORLD - (N + 1) * BLOCK_H - TOP_PAD;
+    // Ground-anchored cam keeps the ground near the bottom until the tower is tall enough
+    // to push it off-screen, at which point the follow-cam takes over.
+    const groundCam  = WORLD - GH + GROUND_H;
+    const followCam  = WORLD - (N + 1) * BLOCK_H - TOP_PAD;
+    const cam = Math.min(groundCam, followCam);
     const sy = (wy: number) => wy - cam;
 
     // Background
@@ -175,9 +179,10 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
   function startGame() {
     const base: Block = { x: (GW - INIT_W) / 2, w: INIT_W };
     blocksRef.current = [base];
-    mxRef.current = 0;
+    // Start from the right edge so the block sweeps LEFT toward the centred base.
+    mxRef.current = GW - INIT_W;
     mwRef.current = INIT_W;
-    dirRef.current = 1;
+    dirRef.current = -1;
     spdRef.current = BASE_SPD;
     scoreRef.current = 0;
     phaseRef.current = 'playing';
@@ -234,11 +239,17 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
     }
 
     const nextW = newBlock.w;
+    const nx    = newBlock.x;
+    // Place the next block just OUTSIDE the newly placed block (zero overlap at start),
+    // coming from the opposite side. This ensures any early tap gives zero (not partial) overlap,
+    // so the user must wait for the block to sweep over the platform before tapping.
     if (dirRef.current === 1) {
-      mxRef.current = GW - nextW;
+      // Was moving right → next comes from the right
+      mxRef.current = Math.min(GW - nextW, nx + nextW);
       dirRef.current = -1;
     } else {
-      mxRef.current = 0;
+      // Was moving left → next comes from the left
+      mxRef.current = Math.max(0, nx - nextW);
       dirRef.current = 1;
     }
     mwRef.current = nextW;
