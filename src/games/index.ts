@@ -82,6 +82,16 @@ export const GAMES: GameDefinition[] = [
     available: true,
   },
   {
+    id: 'sudoku',
+    title: 'SUDOKU',
+    subtitle: 'Vyplň mriežku číslami!',
+    description: 'Klasická logická hra – vyplň 9×9 mriežku tak, aby každý riadok, stĺpec a štvorec obsahoval číslice 1–9.',
+    color: '#0f766e',
+    gradient: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+    icon: '🔢',
+    available: true,
+  },
+  {
     id: 'matching',
     title: 'PAMIATKY',
     subtitle: 'Spárujte city landmarks!',

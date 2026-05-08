@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PrismaClient } from '@prisma/client';
 
-const GAMES = ['quiz', 'mathquiz', 'trafficquiz', 'stack', 'memory', 'puzzle'];
+const GAMES = ['quiz', 'mathquiz', 'trafficquiz', 'stack', 'memory', 'puzzle', 'sudoku'];
 
 function getPrisma() {
   return new PrismaClient();
