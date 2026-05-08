@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SkylineIllustration from '../components/SkylineIllustration';
 import MathQuizGame from '../games/mathQuiz/MathQuizGame';
+import PlayerNameModal from '../components/PlayerNameModal';
 import type { Difficulty } from '../games/mathQuiz/types';
 import { DIFF_CONFIGS } from '../games/mathQuiz/types';
 
@@ -10,10 +11,11 @@ interface Props {
 
 export default function MathQuizScreen({ onBack }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const [pendingScore, setPendingScore] = useState<number | null>(null);
 
   if (difficulty) {
     return (
-      <div style={styles.container}>
+      <div style={{ ...styles.container, position: 'relative' }}>
         <header style={styles.headerCompact}>
           <div style={styles.topBarCompact}>
             <LogoBadge />
@@ -29,9 +31,18 @@ export default function MathQuizScreen({ onBack }: Props) {
           </div>
         </header>
 
-        <MathQuizGame key={difficulty} difficulty={difficulty} onBack={onBack} />
+        <MathQuizGame key={difficulty} difficulty={difficulty} onBack={onBack} onGameEnd={setPendingScore} />
 
         <div style={styles.footer}><SkylineIllustration color="#a5f3fc" opacity={0.35} flip /></div>
+
+        {pendingScore !== null && (
+          <PlayerNameModal
+            gameId="mathquiz"
+            score={pendingScore}
+            gameName="Matematika"
+            onDone={() => setPendingScore(null)}
+          />
+        )}
       </div>
     );
   }

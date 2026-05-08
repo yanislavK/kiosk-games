@@ -6,7 +6,7 @@ const GH = 1660;
 const BLOCK_H = 64;
 const GROUND_H = 80;
 const INIT_W = 280;
-const MIN_W = 10;
+const PERFECT_TOLERANCE = 3;
 const TOP_PAD = 280;
 const BASE_SPD = 3;
 const MAX_SPD = 11;
@@ -27,6 +27,7 @@ const STARS = Array.from({ length: 70 }, (_, i) => ({
 }));
 
 interface Block { x: number; w: number; }
+interface FallingBlock extends Block { wy: number; vy: number; colorIndex: number; }
 type Phase = 'idle' | 'playing' | 'over';
 
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -43,7 +44,7 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
   ctx.closePath();
 }
 
-export default function StackGame({ onBack }: { onBack: () => void }) {
+export default function StackGame({ onBack, onGameEnd }: { onBack: () => void; onGameEnd?: (score: number) => void }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(() => {
@@ -52,9 +53,19 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
   });
   const [isNewBest, setIsNewBest] = useState(false);
   const [showPerfect, setShowPerfect] = useState(false);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (phase === 'over') {
+      if (!calledRef.current) { calledRef.current = true; onGameEnd?.(score); }
+    } else if (phase === 'playing') {
+      calledRef.current = false;
+    }
+  }, [phase, score, onGameEnd]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const blocksRef = useRef<Block[]>([]);
+  const fallingRef = useRef<FallingBlock[]>([]);
   const mxRef = useRef(0);
   const mwRef = useRef(INIT_W);
   const dirRef = useRef<1 | -1>(1);
@@ -132,6 +143,22 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
       ctx.fill();
     }
 
+    // Falling trimmed pieces
+    for (const b of fallingRef.current) {
+      const by = sy(b.wy);
+      if (by > GH || by + BLOCK_H < 0) continue;
+      const c = col(b.colorIndex);
+      ctx.shadowColor = c;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = c;
+      rr(ctx, b.x, by, b.w, BLOCK_H - 4, 8);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
     // Moving block
     if (phaseRef.current === 'playing') {
       const mx = mxRef.current;
@@ -170,8 +197,16 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
     if (phaseRef.current !== 'playing') return;
     const mw = mwRef.current;
     mxRef.current += spdRef.current * dirRef.current;
-    if (mxRef.current <= 0) { mxRef.current = 0; dirRef.current = 1; }
-    else if (mxRef.current + mw >= GW) { mxRef.current = GW - mw; dirRef.current = -1; }
+    if (dirRef.current === -1 && mxRef.current <= -mw) {
+      mxRef.current = -mw;
+      dirRef.current = 1;
+    } else if (dirRef.current === 1 && mxRef.current >= GW) {
+      mxRef.current = GW;
+      dirRef.current = -1;
+    }
+    fallingRef.current = fallingRef.current
+      .map(b => ({ ...b, wy: b.wy + b.vy, vy: b.vy + 0.75 }))
+      .filter(b => b.wy < WORLD + GH);
     draw();
     rafRef.current = requestAnimationFrame(loop);
   }
@@ -179,8 +214,9 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
   function startGame() {
     const base: Block = { x: (GW - INIT_W) / 2, w: INIT_W };
     blocksRef.current = [base];
-    // Start from the right edge so the block sweeps LEFT toward the centred base.
-    mxRef.current = GW - INIT_W;
+    fallingRef.current = [];
+    // Start just off-screen so a rushed first tap is a true miss.
+    mxRef.current = GW;
     mwRef.current = INIT_W;
     dirRef.current = -1;
     spdRef.current = BASE_SPD;
@@ -209,7 +245,14 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
     const or_ = Math.min(mx + mw, top.x + top.w);
     const ow = or_ - ol;
 
-    if (ow <= MIN_W) {
+    if (ow <= 0) {
+      fallingRef.current = [{
+        x: mx,
+        w: mw,
+        wy: WORLD - (blocks.length + 1) * BLOCK_H,
+        vy: 10,
+        colorIndex: blocks.length,
+      }];
       phaseRef.current = 'over';
       const sc = scoreRef.current;
       draw();
@@ -225,8 +268,25 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
       return;
     }
 
-    const isPerfect = Math.abs(ow - top.w) <= 3;
+    const isPerfect = Math.abs(ow - top.w) <= PERFECT_TOLERANCE;
     const newBlock: Block = isPerfect ? { x: top.x, w: top.w } : { x: ol, w: ow };
+    const colorIndex = blocks.length;
+    const layerWy = WORLD - (blocks.length + 1) * BLOCK_H;
+
+    if (!isPerfect) {
+      if (mx < ol) {
+        fallingRef.current = [
+          ...fallingRef.current,
+          { x: mx, w: ol - mx, wy: layerWy, vy: 8, colorIndex },
+        ];
+      }
+      if (mx + mw > or_) {
+        fallingRef.current = [
+          ...fallingRef.current,
+          { x: or_, w: mx + mw - or_, wy: layerWy, vy: 8, colorIndex },
+        ];
+      }
+    }
 
     blocksRef.current = [...blocks, newBlock];
     scoreRef.current = blocksRef.current.length - 1;
@@ -239,17 +299,14 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
     }
 
     const nextW = newBlock.w;
-    const nx    = newBlock.x;
-    // Place the next block just OUTSIDE the newly placed block (zero overlap at start),
-    // coming from the opposite side. This ensures any early tap gives zero (not partial) overlap,
-    // so the user must wait for the block to sweep over the platform before tapping.
+    // Spawn off-screen from alternating sides, matching the classic Stack cadence.
     if (dirRef.current === 1) {
-      // Was moving right → next comes from the right
-      mxRef.current = Math.min(GW - nextW, nx + nextW);
+      // Was moving right, next comes from the right.
+      mxRef.current = GW;
       dirRef.current = -1;
     } else {
-      // Was moving left → next comes from the left
-      mxRef.current = Math.max(0, nx - nextW);
+      // Was moving left, next comes from the left.
+      mxRef.current = -nextW;
       dirRef.current = 1;
     }
     mwRef.current = nextW;
@@ -270,8 +327,7 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
   return (
     <div
       style={{ position: 'relative', width: GW, height: GH, cursor: 'pointer', userSelect: 'none', touchAction: 'none', borderRadius: '16px', overflow: 'hidden' }}
-      onClick={handleTap}
-      onTouchStart={e => { e.preventDefault(); handleTap(); }}
+      onPointerDown={e => { e.preventDefault(); handleTap(); }}
     >
       <canvas ref={canvasRef} width={GW} height={GH} style={{ display: 'block' }} />
 
@@ -292,6 +348,7 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
           </div>
           <button
             style={{ marginTop: '28px', background: 'transparent', color: '#64748b', fontSize: '22px', fontWeight: 600, padding: '14px 44px', borderRadius: '14px', border: '2px solid #334155', cursor: 'pointer' }}
+            onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onBack(); }}
           >
             ← SPÄŤ
@@ -312,12 +369,14 @@ export default function StackGame({ onBack }: { onBack: () => void }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginTop: '52px', width: '400px' }}>
             <button
               style={{ background: 'linear-gradient(135deg,#06b6d4,#0891b2)', color: '#fff', fontSize: '28px', fontWeight: 900, padding: '22px', borderRadius: '16px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 24px rgba(6,182,212,0.45)' }}
+              onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); startGame(); }}
             >
               🔄 HRAŤ ZNOVA
             </button>
             <button
               style={{ background: 'transparent', color: '#94a3b8', fontSize: '22px', fontWeight: 600, padding: '16px', borderRadius: '14px', border: '2px solid #334155', cursor: 'pointer' }}
+              onPointerDown={e => e.stopPropagation()}
               onClick={e => { e.stopPropagation(); onBack(); }}
             >
               ← MENU

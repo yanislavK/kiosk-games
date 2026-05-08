@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TrafficAnswer, TrafficQuizState } from './types';
 import { TRAFFIC_QUESTIONS } from './questions';
 
 interface Props {
   onBack: () => void;
+  onGameEnd?: (score: number) => void;
 }
 
 const TOTAL = TRAFFIC_QUESTIONS.length;
@@ -33,9 +34,18 @@ function TrafficLight({ phase }: { phase: 'red' | 'yellow' | 'green' }) {
   );
 }
 
-export default function TrafficQuizGame({ onBack }: Props) {
+export default function TrafficQuizGame({ onBack, onGameEnd }: Props) {
   const [state, setState] = useState<TrafficQuizState>(init);
   const [lightPhase, setLightPhase] = useState<'red' | 'yellow' | 'green'>('red');
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (state.finished) {
+      if (!calledRef.current) { calledRef.current = true; onGameEnd?.(state.score); }
+    } else {
+      calledRef.current = false;
+    }
+  }, [state.finished, state.score, onGameEnd]);
 
   const q = TRAFFIC_QUESTIONS[state.currentIndex];
   const isLast = state.currentIndex === TOTAL - 1;

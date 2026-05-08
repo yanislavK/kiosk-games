@@ -11,9 +11,10 @@ interface Props {
   image: PuzzleImage;
   onBack: () => void;
   onNewImage: () => void;
+  onGameEnd?: (score: number) => void;
 }
 
-export default function PuzzleGame({ difficulty, image, onBack, onNewImage }: Props) {
+export default function PuzzleGame({ difficulty, image, onBack, onNewImage, onGameEnd }: Props) {
   const { size } = GRID_CONFIGS[difficulty];
   const tileSize = (BOARD_SIZE - GAP * (size - 1)) / size;
 
@@ -24,6 +25,20 @@ export default function PuzzleGame({ difficulty, image, onBack, onNewImage }: Pr
   const [lastMoved, setLastMoved] = useState<number | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (solved) {
+      if (!calledRef.current) {
+        calledRef.current = true;
+        const stars = calcStars(moves, size);
+        const score = Math.max(0, stars * 1000 - moves * 10 - seconds * 3);
+        onGameEnd?.(score);
+      }
+    } else {
+      calledRef.current = false;
+    }
+  }, [solved, moves, seconds, size, onGameEnd]);
 
   useEffect(() => {
     if (solved) { if (timerRef.current) clearInterval(timerRef.current); return; }

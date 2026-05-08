@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SkylineIllustration from '../components/SkylineIllustration';
 import QuizGame from '../games/quiz/QuizGame';
+import PlayerNameModal from '../components/PlayerNameModal';
 
 interface Props {
   onBack: () => void;
 }
 
 export default function QuizScreen({ onBack }: Props) {
+  const [pendingScore, setPendingScore] = useState<number | null>(null);
+
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, position: 'relative' }}>
       <header style={styles.header}>
         <div style={styles.topBar}>
           <div style={styles.logo}>
@@ -36,11 +39,20 @@ export default function QuizScreen({ onBack }: Props) {
         </div>
       </header>
 
-      <QuizGame onBack={onBack} />
+      <QuizGame onBack={onBack} onGameEnd={setPendingScore} />
 
       <div style={styles.footer}>
         <SkylineIllustration color="#fed7aa" opacity={0.4} flip />
       </div>
+
+      {pendingScore !== null && (
+        <PlayerNameModal
+          gameId="quiz"
+          score={pendingScore}
+          gameName="Kvíz o meste"
+          onDone={() => setPendingScore(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { QuizState, Answer } from './types';
 import { BRATISLAVA_QUESTIONS } from './questions';
 
 interface Props {
   onBack: () => void;
+  onGameEnd?: (score: number) => void;
 }
 
 const POINTS_PER_CORRECT = 10;
@@ -23,9 +24,18 @@ function initState(): QuizState {
   };
 }
 
-export default function QuizGame({ onBack }: Props) {
+export default function QuizGame({ onBack, onGameEnd }: Props) {
   const [state, setState] = useState<QuizState>(initState);
   const [showFact, setShowFact] = useState(false);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (state.finished) {
+      if (!calledRef.current) { calledRef.current = true; onGameEnd?.(state.score); }
+    } else {
+      calledRef.current = false;
+    }
+  }, [state.finished, state.score, onGameEnd]);
 
   const question = BRATISLAVA_QUESTIONS[state.currentIndex];
   const isLast = state.currentIndex === BRATISLAVA_QUESTIONS.length - 1;

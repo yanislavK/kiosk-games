@@ -9,6 +9,7 @@ const STREAK_BONUS = [0, 0, 0, 5, 8, 10]; // bonus at streak 3,4,5+
 interface Props {
   difficulty: Difficulty;
   onBack: () => void;
+  onGameEnd?: (score: number) => void;
 }
 
 function initState(difficulty: Difficulty): MathQuizState {
@@ -25,9 +26,18 @@ function initState(difficulty: Difficulty): MathQuizState {
   };
 }
 
-export default function MathQuizGame({ difficulty, onBack }: Props) {
+export default function MathQuizGame({ difficulty, onBack, onGameEnd }: Props) {
   const [state, setState] = useState<MathQuizState>(() => initState(difficulty));
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (state.finished) {
+      if (!calledRef.current) { calledRef.current = true; onGameEnd?.(state.score); }
+    } else {
+      calledRef.current = false;
+    }
+  }, [state.finished, state.score, onGameEnd]);
   const cfg = DIFF_CONFIGS[difficulty];
 
   const q = state.questions[state.currentIndex];

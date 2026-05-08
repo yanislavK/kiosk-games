@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SkylineIllustration from '../components/SkylineIllustration';
 import MemoryGame from '../games/memory/MemoryGame';
+import PlayerNameModal from '../components/PlayerNameModal';
 import type { Difficulty } from '../games/memory/types';
 import { GRID_CONFIGS } from '../games/memory/types';
 
@@ -12,6 +13,7 @@ const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 
 export default function MemoryScreen({ onBack }: Props) {
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const [pendingScore, setPendingScore] = useState<number | null>(null);
 
   if (!difficulty) {
     return (
@@ -83,7 +85,7 @@ export default function MemoryScreen({ onBack }: Props) {
   }
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, position: 'relative' }}>
       <header style={styles.headerCompact}>
         <div style={styles.topBarCompact}>
           <div style={styles.logo}>
@@ -105,11 +107,20 @@ export default function MemoryScreen({ onBack }: Props) {
         </div>
       </header>
 
-      <MemoryGame difficulty={difficulty} onBack={onBack} />
+      <MemoryGame difficulty={difficulty} onBack={onBack} onGameEnd={setPendingScore} />
 
       <div style={styles.footer}>
         <SkylineIllustration color="#bbf7d0" opacity={0.35} flip />
       </div>
+
+      {pendingScore !== null && (
+        <PlayerNameModal
+          gameId="memory"
+          score={pendingScore}
+          gameName="Pamäť – Nájdi páry"
+          onDone={() => setPendingScore(null)}
+        />
+      )}
     </div>
   );
 }

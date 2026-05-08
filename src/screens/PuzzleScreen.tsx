@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SkylineIllustration from '../components/SkylineIllustration';
 import PuzzleGame from '../games/puzzle/PuzzleGame';
+import PlayerNameModal from '../components/PlayerNameModal';
 import type { Difficulty } from '../games/puzzle/types';
 import { GRID_CONFIGS } from '../games/puzzle/types';
 import { PUZZLE_IMAGES } from '../games/puzzle/images';
@@ -20,6 +21,7 @@ export default function PuzzleScreen({ onBack }: Props) {
   const [step, setStep] = useState<SetupStep>('image');
   const [selectedImage, setSelectedImage] = useState<PuzzleImage | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const [pendingScore, setPendingScore] = useState<number | null>(null);
 
   const handlePickImage = (img: PuzzleImage) => {
     setSelectedImage(img);
@@ -39,7 +41,7 @@ export default function PuzzleScreen({ onBack }: Props) {
   // Active game
   if (selectedImage && difficulty) {
     return (
-      <div style={styles.container}>
+      <div style={{ ...styles.container, position: 'relative' }}>
         <header style={styles.headerCompact}>
           <div style={styles.topBarCompact}>
             <LogoBadge />
@@ -57,8 +59,18 @@ export default function PuzzleScreen({ onBack }: Props) {
           image={selectedImage}
           onBack={onBack}
           onNewImage={handleNewImage}
+          onGameEnd={setPendingScore}
         />
         <div style={styles.footer}><SkylineIllustration color="#e9d5ff" opacity={0.35} flip /></div>
+
+        {pendingScore !== null && (
+          <PlayerNameModal
+            gameId="puzzle"
+            score={pendingScore}
+            gameName="Puzzle"
+            onDone={() => setPendingScore(null)}
+          />
+        )}
       </div>
     );
   }

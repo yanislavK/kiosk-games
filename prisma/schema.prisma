@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model Score {
+  id         Int      @id @default(autoincrement())
+  gameId     String
+  playerName String
+  score      Int
+  createdAt  DateTime @default(now())
+
+  @@index([gameId, score(sort: Desc)])
+  @@map("scores")
+}

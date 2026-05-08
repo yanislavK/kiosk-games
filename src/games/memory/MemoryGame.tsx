@@ -6,6 +6,7 @@ import { buildCards, calcStars, formatTime } from './logic';
 interface Props {
   difficulty: Difficulty;
   onBack: () => void;
+  onGameEnd?: (score: number) => void;
 }
 
 function initState(difficulty: Difficulty): MemoryState {
@@ -21,11 +22,25 @@ function initState(difficulty: Difficulty): MemoryState {
   };
 }
 
-export default function MemoryGame({ difficulty, onBack }: Props) {
+export default function MemoryGame({ difficulty, onBack, onGameEnd }: Props) {
   const [state, setState] = useState<MemoryState>(() => initState(difficulty));
   const [blocked, setBlocked] = useState(false);
   const [newlyMatched, setNewlyMatched] = useState<Set<string>>(new Set());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const calledRef = useRef(false);
+
+  useEffect(() => {
+    if (state.finished) {
+      if (!calledRef.current) {
+        calledRef.current = true;
+        const stars = calcStars(state.moves, state.totalPairs, state.seconds);
+        const score = Math.max(0, stars * 1000 - state.moves * 20 - state.seconds);
+        onGameEnd?.(score);
+      }
+    } else {
+      calledRef.current = false;
+    }
+  }, [state.finished, state.moves, state.totalPairs, state.seconds, onGameEnd]);
 
   // Timer
   useEffect(() => {
