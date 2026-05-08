@@ -62,10 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!GAMES.includes(gameId)) return res.status(400).json({ error: 'invalid game' });
 
-      const clean = String(playerName ?? '')
-        .toUpperCase()
-        .replace(/[^A-Z]/g, '')
-        .slice(0, 3);
+      const clean = String(playerName ?? '').trim().slice(0, 50);
       if (!clean) return res.status(400).json({ error: 'invalid name' });
 
       const s = Number(score);
