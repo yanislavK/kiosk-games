@@ -92,6 +92,16 @@ export const GAMES: GameDefinition[] = [
     available: true,
   },
   {
+    id: 'chess',
+    title: 'ŠACH',
+    subtitle: 'Zahrajte si šach!',
+    description: 'Klasická strategická hra – hrajte proti AI alebo priateľovi. 3 úrovne obtiažnosti, plné šachové pravidlá.',
+    color: '#1d4ed8',
+    gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e3a5f 100%)',
+    icon: '♟',
+    available: true,
+  },
+  {
     id: 'matching',
     title: 'PAMIATKY',
     subtitle: 'Spárujte city landmarks!',

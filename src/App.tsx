@@ -10,11 +10,12 @@ import TrafficQuizScreen from './screens/TrafficQuizScreen';
 import MathQuizScreen from './screens/MathQuizScreen';
 import StackScreen from './screens/StackScreen';
 import SudokuScreen from './screens/SudokuScreen';
+import ChessScreen from './screens/ChessScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import AboutScreen from './screens/AboutScreen';
 
 type NavTab = 'home' | 'leaderboard' | 'about';
-type GameScreen = 'tictactoe' | 'quiz' | 'memory' | 'puzzle' | 'trafficquiz' | 'mathquiz' | 'stack' | 'sudoku' | null;
+type GameScreen = 'tictactoe' | 'quiz' | 'memory' | 'puzzle' | 'trafficquiz' | 'mathquiz' | 'stack' | 'sudoku' | 'chess' | null;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
@@ -46,6 +47,7 @@ export default function App() {
     if (gameId === 'mathquiz') setActiveGame('mathquiz');
     if (gameId === 'stack') setActiveGame('stack');
     if (gameId === 'sudoku') setActiveGame('sudoku');
+    if (gameId === 'chess') setActiveGame('chess');
   };
 
   const handleNavigation = (tab: NavTab) => {
@@ -77,6 +79,9 @@ export default function App() {
     }
     if (activeGame === 'sudoku') {
       return <SudokuScreen onBack={() => setActiveGame(null)} />;
+    }
+    if (activeGame === 'chess') {
+      return <ChessScreen onBack={() => setActiveGame(null)} />;
     }
     switch (activeTab) {
       case 'home':

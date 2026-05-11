@@ -15,6 +15,7 @@ const GAMES = [
   { id: 'puzzle',      label: 'Puzzle',        emoji: '🖼️', color: '#7c3aed', bg: '#faf5ff' },
   { id: 'stack',       label: 'Stack',         emoji: '🏗️', color: '#6366f1', bg: '#eef2ff' },
   { id: 'sudoku',      label: 'Sudoku',        emoji: '🔢', color: '#0f766e', bg: '#f0fdfa' },
+  { id: 'chess',       label: 'Šach',          emoji: '♟',  color: '#1d4ed8', bg: '#eff6ff' },
 ] as const;
 
 type GameId = typeof GAMES[number]['id'];
@@ -252,7 +253,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tabs: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(7, 1fr)',
+    gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '10px',
     padding: '16px 24px',
     background: '#fff',
