@@ -161,14 +161,11 @@ export default function LeaderboardScreen({ onBack }: Props) {
                   }
                 </div>
 
-                {/* Initials badge */}
-                <div style={{
-                  ...styles.initials,
-                  background: i === 0 ? '#fde047' : i === 1 ? '#e2e8f0' : i === 2 ? '#fdba74' : meta.bg,
-                  color: i < 3 ? '#1e293b' : meta.color,
-                  borderColor: i < 3 ? 'transparent' : `${meta.color}44`,
-                }}>
-                  {entry.player_name}
+                {/* Player name */}
+                <div style={styles.nameCol}>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: i < 3 ? meta.color : '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {entry.player_name}
+                  </span>
                 </div>
 
                 {/* Score */}
@@ -333,23 +330,16 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  initials: {
-    width: '80px',
-    height: '64px',
-    borderRadius: '14px',
-    border: '2px solid',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '26px',
-    fontWeight: 900,
-    letterSpacing: '0.08em',
-    flexShrink: 0,
-  },
-  scoreCol: {
+  nameCol: {
     flex: 1,
     display: 'flex',
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  scoreCol: {
+    display: 'flex',
     alignItems: 'baseline',
+    flexShrink: 0,
   },
   date: {
     fontSize: '18px',
