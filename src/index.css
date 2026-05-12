@@ -86,3 +86,29 @@ button:active {
   0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.3); }
   50% { box-shadow: 0 0 40px rgba(37, 99, 235, 0.7); }
 }
+
+@keyframes aiRingPulse {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.05); }
+}
+
+@keyframes aiFabPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(99,102,241,0.5); }
+  50% { box-shadow: 0 8px 48px rgba(99,102,241,0.8), 0 0 0 8px rgba(99,102,241,0.15); }
+}
+
+.ai-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid;
+  pointer-events: none;
+}
+.ai-ring-1 { width: 260px; height: 260px; animation: aiRingPulse 2.2s ease-in-out infinite; }
+.ai-ring-2 { width: 220px; height: 220px; animation: aiRingPulse 2.2s ease-in-out infinite 0.5s; }
+
+.ai-fab {
+  animation: aiFabPulse 3s ease-in-out infinite;
+}
+.ai-fab:active {
+  transform: scale(0.93) !important;
+}

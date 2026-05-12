@@ -12,6 +12,7 @@ import StackScreen from './screens/StackScreen';
 import SudokuScreen from './screens/SudokuScreen';
 import ChessScreen from './screens/ChessScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
+import AIAssistant from './components/AIAssistant';
 import AboutScreen from './screens/AboutScreen';
 
 type NavTab = 'home' | 'leaderboard' | 'about';
@@ -20,6 +21,7 @@ type GameScreen = 'tictactoe' | 'quiz' | 'memory' | 'puzzle' | 'trafficquiz' | '
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [activeGame, setActiveGame] = useState<GameScreen>(null);
+  const [showAI, setShowAI] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
 
   // Scale the 1080×1920 screen to fit whatever viewport is available
@@ -128,6 +130,34 @@ export default function App() {
         <KioskLayout bottomNav={bottomNav}>
           {renderContent()}
         </KioskLayout>
+
+        {/* AI floating button — always visible above bottom nav */}
+        {!showAI && (
+          <button
+            className="ai-fab"
+            onClick={() => setShowAI(true)}
+            style={{
+              position: 'fixed',
+              bottom: 164,
+              right: 36,
+              width: 86,
+              height: 86,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              border: '3px solid #818cf8',
+              fontSize: 36,
+              cursor: 'pointer',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            🤖
+          </button>
+        )}
+
+        {showAI && <AIAssistant onClose={() => setShowAI(false)} />}
       </div>
     </div>
   );

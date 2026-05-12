@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@elevenlabs/react": "^1.6.0",
     "@prisma/client": "^6.0.0",
     "chess.js": "^1.4.0",
     "react": "^18.2.0",
