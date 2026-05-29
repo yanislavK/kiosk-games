@@ -1,6 +1,6 @@
 import React from 'react';
 
-type NavTab = 'home' | 'leaderboard' | 'about';
+type NavTab = 'home' | 'leaderboard' | 'map' | 'about';
 
 interface Props {
   active: NavTab;
@@ -10,6 +10,7 @@ interface Props {
 const navItems: { id: NavTab; label: string; icon: string }[] = [
   { id: 'home', label: 'DOMOV', icon: '🏠' },
   { id: 'leaderboard', label: 'REBRÍČKY', icon: '🏆' },
+  { id: 'map', label: 'MAPA', icon: '🗺️' },
   { id: 'about', label: 'O KIOSKU', icon: 'ℹ️' },
 ];
 

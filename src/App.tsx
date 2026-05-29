@@ -14,8 +14,9 @@ import ChessScreen from './screens/ChessScreen';
 import LeaderboardScreen from './screens/LeaderboardScreen';
 import AIAssistant from './components/AIAssistant';
 import AboutScreen from './screens/AboutScreen';
+import MapScreen from './screens/MapScreen';
 
-type NavTab = 'home' | 'leaderboard' | 'about';
+type NavTab = 'home' | 'leaderboard' | 'map' | 'about';
 type GameScreen = 'tictactoe' | 'quiz' | 'memory' | 'puzzle' | 'trafficquiz' | 'mathquiz' | 'stack' | 'sudoku' | 'chess' | null;
 
 export default function App() {
@@ -90,6 +91,8 @@ export default function App() {
         return <HomeScreen onPlayGame={handlePlayGame} />;
       case 'leaderboard':
         return <LeaderboardScreen onBack={() => handleNavigation('home')} />;
+      case 'map':
+        return <MapScreen onBack={() => handleNavigation('home')} />;
       case 'about':
         return <AboutScreen onBack={() => handleNavigation('home')} />;
       default:
