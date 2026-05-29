@@ -52,7 +52,10 @@ export const CATEGORY_COLORS: Record<LandmarkCategory, string> = {
   posta:     '#d97706',
 };
 
-const CDN = 'https://upload.wikimedia.org/wikipedia/commons/thumb';
+// Use Special:FilePath – MediaWiki redirects to the correct CDN URL with proper encoding.
+// Format: https://commons.wikimedia.org/wiki/Special:FilePath/{filename}?width=400
+const FP = (filename: string) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${filename}?width=400`;
 
 export const LANDMARKS: Landmark[] = [
 
@@ -63,8 +66,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Bratislava Castle',
     category: 'hrad',
     lat: 48.1426, lng: 17.1005,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Bratislava_Castle
-    photo: `${CDN}/b/b4/Bratislava_-_Burg_%28b%29.JPG/640px-Bratislava_-_Burg_%28b%29.JPG`,
+    photo: FP('Bratislava_-_Burg_(b).JPG'),
     description: 'Bratislavský hrad je dominantou slovenského hlavného mesta a symbolom Bratislavy. Hrad stojí na skalnatom brale nad Dunajom a v minulosti slúžil ako kráľovské sídlo uhorských panovníkov. Dnes je sídlom Národnej rady SR a múzeom Slovenského národného múzea. Z hradu je nádherný výhľad na celé mesto, Dunaj a okolitú krajinu.',
     address: 'Zámocká, 811 06 Bratislava',
     built: '9. storočie (súčasná podoba 15.–18. stor.)',
@@ -76,8 +78,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: "St. Martin's Cathedral",
     category: 'kostol',
     lat: 48.1420, lng: 17.1049,
-    // ASCII-only filename confirmed via commons API
-    photo: `${CDN}/7/71/Bratislava_-_St._Martins_Cathedral_from_Danube.jpg/640px-Bratislava_-_St._Martins_Cathedral_from_Danube.jpg`,
+    photo: FP('Bratislava_-_St._Martins_Cathedral_from_Danube.jpg'),
     description: 'Dóm sv. Martina je hlavný gotický chrám Bratislavy a najväčší kostol v meste. Od roku 1563 do roku 1830 bol korunovačným kostolom uhorských kráľov – celkovo tu bolo korunovaných 11 kráľov a 7 kráľovských manželiek. Na veži nesie pozlátenu korunu – repliku uhorskej koruny.',
     address: 'Rudnayovo nám. 1, 811 01 Bratislava',
     built: '14. – 15. storočie',
@@ -100,8 +101,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Old Town Hall',
     category: 'palac',
     lat: 48.1438, lng: 17.1088,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Old_Town_Hall_(Bratislava)
-    photo: `${CDN}/2/29/Bratislava14Slovakia65.JPG/640px-Bratislava14Slovakia65.JPG`,
+    photo: FP('Bratislava14Slovakia65.JPG'),
     description: 'Stará radnica je jednou z najstarších zachovaných svetských stavieb v Bratislave. Komplex budov z rôznych epoch (gotika, renesancia, baroko) bol centrom mestskej správy. Dnes tu sídli Múzeum mesta Bratislavy. V stene budovy je ešte stále viditeľné jadro tureckej delostreleckej gule z roku 1809.',
     address: 'Primaciálne nám. 3, 814 99 Bratislava',
     built: '14. storočie',
@@ -113,8 +113,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: "Primate's Palace",
     category: 'palac',
     lat: 48.1437, lng: 17.1093,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Primate%27s_Palace,_Bratislava
-    photo: `${CDN}/d/d2/Palacio_primacial%2C_Bratislava%2C_Eslovaquia%2C_2020-02-01%2C_DD_30.jpg/640px-Palacio_primacial%2C_Bratislava%2C_Eslovaquia%2C_2020-02-01%2C_DD_30.jpg`,
+    photo: FP('Palacio_primacial,_Bratislava,_Eslovaquia,_2020-02-01,_DD_30.jpg'),
     description: 'Primaciálny palác je neoklasický palác postavený v rokoch 1778–1781 pre arcibiskupa Jozefa Batthyányho. Patrí medzi najkrajšie klasicistické paláce v strednej Európe. V roku 1805 tu Napoleon Bonaparte a rakúsky cisár František II. podpísali Bratislavský mier. V paláci sa nachádza unikátna zbierka flámskych tapisérií.',
     address: 'Primaciálne nám. 1, 814 99 Bratislava',
     built: '1778–1781',
@@ -137,8 +136,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: "Michael's Gate",
     category: 'hrad',
     lat: 48.1452, lng: 17.1067,
-    // ASCII-only filename confirmed via commons API
-    photo: `${CDN}/5/55/View-of-Michaels-Gate-Bratislava-Slovakia.jpg/640px-View-of-Michaels-Gate-Bratislava-Slovakia.jpg`,
+    photo: FP('View-of-Michaels-Gate-Bratislava-Slovakia.jpg'),
     description: 'Michalská brána je jediná zachovaná mestská brána z pôvodného stredovekého opevnenia Bratislavy. Postavená bola v 14. storočí a prešla viacerými prestavbami. Veža je vysoká 51 metrov a na jej vrchole je socha archanjela Michala zabíjajúceho draka. V bráne sa nachádza expozícia zbraní a ukážka mestského opevnenia.',
     address: 'Michalská, 811 01 Bratislava',
     built: '14. storočie (veža 1758)',
@@ -150,8 +148,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'SNP Bridge (UFO)',
     category: 'most',
     lat: 48.1383, lng: 17.1046,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Most_SNP
-    photo: `${CDN}/3/3d/Most_SNP%2C_Bratislava_%28by_Pudelek%29.JPG/640px-Most_SNP%2C_Bratislava_%28by_Pudelek%29.JPG`,
+    photo: FP('Most_SNP,_Bratislava_(by_Pudelek).JPG'),
     description: 'Most SNP je zavesený cestný most cez Dunaj, jeden z najdlhších zavesených mostov s jedným pilónom na svete. Na vrchole 85-metrovej veže sa nachádza vyhliadková plošina a reštaurácia UFO, odkiaľ je panoramatický výhľad na Bratislavu a okolie. Most bol otvorený v roku 1972.',
     address: 'Most SNP, Bratislava',
     built: '1967–1972',
@@ -163,8 +160,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Slovak National Theatre',
     category: 'divadlo',
     lat: 48.1436, lng: 17.1095,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Slovak_National_Theatre
-    photo: `${CDN}/2/20/Bratislava10Slovakia117.JPG/640px-Bratislava10Slovakia117.JPG`,
+    photo: FP('Bratislava10Slovakia117.JPG'),
     description: 'Slovenské národné divadlo je najstaršie profesionálne divadlo na Slovensku. Pôvodná historická budova z roku 1886 sa nachádza na Hviezdoslavovom námestí. Nová budova SND, otvorená v roku 2007, je moderná stavba pri nábreží Dunaja. Divadlo ponúka operu, balet a drámu.',
     address: 'Hviezdoslavovo nám. 1, 811 02 Bratislava',
     built: '1886 (hist. budova)',
@@ -176,8 +172,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Hviezdoslav Square',
     category: 'namestie',
     lat: 48.1416, lng: 17.1086,
-    // ASCII-only filename confirmed via commons API
-    photo: `${CDN}/7/76/Bratislava_square_Hviezdoslavovo.jpg/640px-Bratislava_square_Hviezdoslavovo.jpg`,
+    photo: FP('Bratislava_square_Hviezdoslavovo.jpg'),
     description: 'Hviezdoslavovo námestie je reprezentačné námestie v historickom centre Bratislavy. Lemuje ho Historická budova SND, Hotel Carlton a množstvo kaviarní a reštaurácií. V strede stojí pomník básnika Pavla Országha Hviezdoslava. Námestie je obľúbeným miestom odpočinku a kultúrnych podujatí.',
     address: 'Hviezdoslavovo nám., 811 02 Bratislava',
     built: '19. storočie',
@@ -189,8 +184,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Slovak National Museum',
     category: 'museum',
     lat: 48.1403, lng: 17.1131,
-    // confirmed: sk.wikipedia.org/api/rest_v1/page/summary/Slovenské_národné_múzeum
-    photo: `${CDN}/7/7c/Slovak_National_Museum_in_Bratislava_%281%29.jpg/640px-Slovak_National_Museum_in_Bratislava_%281%29.jpg`,
+    photo: FP('Slovak_National_Museum_in_Bratislava_(1).jpg'),
     description: 'Slovenské národné múzeum je najstaršia a najväčšia múzejná inštitúcia na Slovensku. Budova pri nábreží Dunaja bola postavená v roku 1928. Múzeum spravuje zbierky z oblasti prírodných vied, histórie, archeológie a etnografie. Nachádza sa tu aj slávna výstava dinosaurov a prehistorických nálezov zo Slovenska.',
     address: 'Vajanského nábr. 2, 810 06 Bratislava',
     built: '1928',
@@ -202,8 +196,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Presidential Palace',
     category: 'palac',
     lat: 48.1460, lng: 17.1100,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Grassalkovich_Palace
-    photo: `${CDN}/c/cd/Palacio_Grassalkovich%2C_Bratislava%2C_Eslovaquia%2C_2020-02-01%2C_DD_21.jpg/640px-Palacio_Grassalkovich%2C_Bratislava%2C_Eslovaquia%2C_2020-02-01%2C_DD_21.jpg`,
+    photo: FP('Palacio_Grassalkovich,_Bratislava,_Eslovaquia,_2020-02-01,_DD_21.jpg'),
     description: 'Prezidentský palác (Grassalkovičov palác) je barokový palác postavený okolo roku 1760 pre grófa Antala Grassalkoviča. Palác slúžil ako sídlo Márie Terézie počas jej pobytov v Bratislave. Dnes je officiálnym sídlom prezidenta Slovenskej republiky. Pred palácom je rozsiahla záhrada prístupná verejnosti.',
     address: 'Hodžovo nám. 1, 810 00 Bratislava',
     built: 'okolo 1760',
@@ -215,8 +208,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: "Janko Kráľ's Garden",
     category: 'park',
     lat: 48.1343, lng: 17.1106,
-    // confirmed: sk.wikipedia.org/api/rest_v1/page/summary/Sad_Janka_Kráľa
-    photo: `${CDN}/7/74/Sad_Janka_Krala%2C_Bratislava%2C_Slovakia.JPG/640px-Sad_Janka_Krala%2C_Bratislava%2C_Slovakia.JPG`,
+    photo: FP('Sad_Janka_Krala,_Bratislava,_Slovakia.JPG'),
     description: 'Sad Janka Kráľa na Petržalke je najstarší verejný park v strednej Európe, otvorený v roku 1776. Park leží na petržalskom brehu Dunaja a je pomenovaný po slovenskom básnikovi Jankovi Kráľovi. Nachádza sa tu fontána, detské ihriská, tenisové kurty a amfiteáter. Je obľúbeným miestom prechádzok Bratislavčanov.',
     address: 'Petržalka, 851 01 Bratislava',
     built: '1776',
@@ -228,8 +220,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Devín Castle',
     category: 'hrad',
     lat: 48.1731, lng: 16.9804,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Dev%C3%ADn_Castle
-    photo: `${CDN}/1/16/Devin02.jpg/640px-Devin02.jpg`,
+    photo: FP('Devin02.jpg'),
     description: 'Zrúcanina hradu Devín sa nachádza na skalnom výbežku nad sútokom Dunaja a Moravy, na štátnej hranici s Rakúskom. Hrad bol dôležitou pevnosťou Veľkomoravskej ríše v 9. storočí. Napoleon dal hrad v roku 1809 vyhodiť do vzduchu. Dnes je národnou kultúrnou pamiatkou a obľúbenou turistickou destináciou.',
     address: 'Muránska, 841 10 Devín, Bratislava',
     built: '9. storočie (zrúcanina)',
@@ -284,8 +275,7 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Bratislava Main Train Station',
     category: 'doprava',
     lat: 48.1577, lng: 17.1068,
-    // ASCII-only filename confirmed via commons API
-    photo: `${CDN}/8/8d/Bratislava_Main_Railway_Station.JPG/640px-Bratislava_Main_Railway_Station.JPG`,
+    photo: FP('Bratislava_Main_Railway_Station.JPG'),
     description: 'Bratislava hlavná stanica je najväčšia a najdôležitejšia železničná stanica v Bratislave. Odchádzajú odtiaľto vlaky do celej SR, medzinárodné spoje do Viedne, Prahy, Budapešti a ďalších miest. V priestoroch stanice sa nachádzajú obchody, reštaurácie a informačné centrum.',
     address: 'Predstaničné nám. 1, 811 04 Bratislava',
     icon: '🚂', color: '#b45309',
