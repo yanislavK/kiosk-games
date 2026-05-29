@@ -31,11 +31,6 @@ interface RouteInfo {
   mode: RouteMode;
 }
 
-const OSRM_PROFILE: Record<string, string> = {
-  walk: 'foot',
-  bike: 'bike',
-  car:  'driving',
-};
 
 const MODE_META: Record<RouteMode, { label: string; icon: string; color: string }> = {
   walk:    { label: 'Pešo',      icon: '🚶', color: '#16a34a' },
@@ -129,7 +124,10 @@ export default function MapScreen({ onBack }: Props) {
     });
   }, [selected, activeCategory]);
 
-  // ── Calculate route via OSRM ───────────────────────────────
+  // Generation counter — cancels stale async results when mode/landmark changes quickly
+  const routeGenRef = useRef(0);
+
+  // ── Calculate route via /api/route proxy ───────────────────
   const calcRoute = useCallback(async (mode: RouteMode, dest: Landmark) => {
     if (mode === 'transit') {
       setRouteMode('transit');
@@ -141,54 +139,51 @@ export default function MapScreen({ onBack }: Props) {
       return;
     }
 
+    // Mark this as the latest request; stale ones will bail out
+    const gen = ++routeGenRef.current;
+
     setCalculating(true);
     setRouteMode(mode);
     setRouteInfo(null);
 
-    const profile = OSRM_PROFILE[mode];
-    const coord   = `${KIOSK.lng},${KIOSK.lat};${dest.lng},${dest.lat}`;
-    const qs      = 'overview=full&geometries=geojson';
+    try {
+      const params = new URLSearchParams({
+        mode,
+        from_lng: String(KIOSK.lng),
+        from_lat: String(KIOSK.lat),
+        to_lng:   String(dest.lng),
+        to_lat:   String(dest.lat),
+      });
+      const res  = await fetch(`/api/route?${params}`, { signal: AbortSignal.timeout(15000) });
+      const data = await res.json();
 
-    // Try primary OSRM server, then fallback
-    const urls = [
-      `https://router.project-osrm.org/route/v1/${profile}/${coord}?${qs}`,
-      `https://routing.openstreetmap.de/routed-${profile === 'driving' ? 'car' : profile}/route/v1/${profile}/${coord}?${qs}`,
-    ];
+      // Drop result if a newer request already started
+      if (routeGenRef.current !== gen) return;
 
-    let lastError: unknown;
-    for (const url of urls) {
-      try {
-        const res  = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        const data = await res.json();
-        if (data.code !== 'Ok' || !data.routes?.length) continue;
+      if (!res.ok || data.error || !data.routes?.length) throw new Error(data.error ?? 'No route');
 
-        const route = data.routes[0];
-        const coords: [number, number][] = route.geometry.coordinates.map(
-          ([lng, lat]: [number, number]) => [lat, lng]
-        );
+      const route = data.routes[0];
+      const coords: [number, number][] = route.geometry.coordinates.map(
+        ([lng, lat]: [number, number]) => [lat, lng]
+      );
 
-        if (routeLayerRef.current && mapRef.current) mapRef.current.removeLayer(routeLayerRef.current);
-        const color = MODE_META[mode].color;
-        routeLayerRef.current = L.polyline(coords, { color, weight: 6, opacity: 0.85 })
-          .addTo(mapRef.current!);
+      if (routeLayerRef.current && mapRef.current) mapRef.current.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = L.polyline(coords, { color: MODE_META[mode].color, weight: 6, opacity: 0.85 })
+        .addTo(mapRef.current!);
 
-        mapRef.current!.fitBounds(
-          L.latLngBounds([[KIOSK.lat, KIOSK.lng], [dest.lat, dest.lng]]),
-          { padding: [80, 80], maxZoom: 16 }
-        );
+      mapRef.current!.fitBounds(
+        L.latLngBounds([[KIOSK.lat, KIOSK.lng], [dest.lat, dest.lng]]),
+        { padding: [80, 80], maxZoom: 16 }
+      );
 
-        setRouteInfo({ distance: route.distance, duration: route.duration, mode });
-        setCalculating(false);
-        return; // success
-      } catch (e) {
-        lastError = e;
-      }
+      setRouteInfo({ distance: route.distance, duration: route.duration, mode });
+    } catch (e) {
+      if (routeGenRef.current !== gen) return;
+      console.warn('Route failed:', e);
+      setRouteInfo({ distance: -1, duration: -1, mode });
+    } finally {
+      if (routeGenRef.current === gen) setCalculating(false);
     }
-
-    // Both servers failed
-    console.warn('Route calculation failed:', lastError);
-    setRouteInfo({ distance: -1, duration: -1, mode }); // sentinel for error state
-    setCalculating(false);
   }, []);
 
   // ── routeMode ref: always reflects latest value in effects ──
