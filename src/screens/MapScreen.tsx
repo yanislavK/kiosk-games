@@ -8,6 +8,7 @@ import {
   type Landmark,
   type LandmarkCategory,
 } from '../data/bratislavaLandmarks';
+import TransitPanel from './TransitPanel';
 
 interface Props {
   onBack: () => void;
@@ -245,18 +246,36 @@ export default function MapScreen({ onBack }: Props) {
       <div ref={mapElRef} style={s.map} />
 
       {/* Bottom panel */}
-      <div style={s.bottomPanel}>
-        {selected
-          ? <DetailPanel
-              landmark={selected}
-              routeMode={routeMode}
-              routeInfo={routeInfo}
-              calculating={calculating}
-              onClose={handleClose}
-              onRoute={calcRoute}
-              onClearRoute={clearRoute}
-            />
-          : <LandmarkList landmarks={filteredList} onSelect={setSelected} />}
+      <div style={{ ...s.bottomPanel, ...(routeMode === 'transit' ? { height: '580px' } : {}) }}>
+        {routeMode === 'transit' && selected ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '2px solid #e2e8f0', flexShrink: 0, background: '#f8fafc' }}>
+              <button
+                onClick={() => { clearRoute(); }}
+                style={{ padding: '7px 16px', borderRadius: 10, border: '2px solid #e2e8f0', background: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+                ← Späť
+              </button>
+              <span style={{ fontSize: 17, fontWeight: 800, color: '#1e293b' }}>
+                🚌 MHD: Svornosti 42 → {selected.name}
+              </span>
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <TransitPanel destination={selected} />
+            </div>
+          </div>
+        ) : selected ? (
+          <DetailPanel
+            landmark={selected}
+            routeMode={routeMode}
+            routeInfo={routeInfo}
+            calculating={calculating}
+            onClose={handleClose}
+            onRoute={calcRoute}
+            onClearRoute={clearRoute}
+          />
+        ) : (
+          <LandmarkList landmarks={filteredList} onSelect={setSelected} />
+        )}
       </div>
     </div>
   );
@@ -277,7 +296,6 @@ function DetailPanel({
   const [imgFailed, setImgFailed] = useState(false);
   useEffect(() => { setImgFailed(false); }, [landmark.id]);
 
-  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${KIOSK.lat},${KIOSK.lng}&destination=${landmark.lat},${landmark.lng}&travelmode=${routeMode === 'transit' ? 'transit' : routeMode === 'car' ? 'driving' : routeMode === 'bike' ? 'bicycling' : 'walking'}`;
 
   return (
     <div style={dp.container}>
@@ -339,33 +357,12 @@ function DetailPanel({
           {/* Route info */}
           {calculating && <div style={dp.routeInfo}>⏳ Vypočítava sa trasa...</div>}
 
-          {routeInfo && !calculating && routeMode !== 'transit' && (
+          {routeInfo && !calculating && (
             <div style={dp.routeResult}>
               <span style={{ ...dp.routeBadge, background: MODE_META[routeInfo.mode].color }}>
                 {MODE_META[routeInfo.mode].icon} {fmtTime(routeInfo.duration)}
               </span>
               <span style={dp.routeDist}>📏 {fmtDist(routeInfo.distance)}</span>
-              <button style={dp.gmapsBtn} onClick={() => window.open(googleMapsUrl, '_blank')}>
-                Otvoriť v Google Mapách ↗
-              </button>
-            </div>
-          )}
-
-          {routeMode === 'transit' && !calculating && (
-            <div style={dp.transitPanel}>
-              <div style={dp.transitTitle}>🚌 Mestská hromadná doprava Bratislava</div>
-              <div style={dp.transitText}>
-                Pre zobrazenie aktuálneho spojenia MHD (autobusy, trolejbusy, tram) zo Svornosti 42 použite Google Mapy alebo imhd.sk
-              </div>
-              <div style={dp.transitBtns}>
-                <button style={dp.gmapsBtn} onClick={() => window.open(googleMapsUrl, '_blank')}>
-                  🗺️ Google Mapy – trasa MHD ↗
-                </button>
-                <button style={{ ...dp.gmapsBtn, background: '#0369a1' }}
-                  onClick={() => window.open(`https://imhd.sk/ba/spojenie/z/${encodeURIComponent('Svornosti 42')}/do/${encodeURIComponent(landmark.name)}`, '_blank')}>
-                  🚍 imhd.sk – DPB ↗
-                </button>
-              </div>
             </div>
           )}
         </div>
