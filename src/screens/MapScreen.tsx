@@ -134,7 +134,6 @@ export default function MapScreen({ onBack }: Props) {
     if (mode === 'transit') {
       setRouteMode('transit');
       setRouteInfo({ distance: 0, duration: 0, mode: 'transit' });
-      // Remove old polyline
       if (routeLayerRef.current && mapRef.current) {
         mapRef.current.removeLayer(routeLayerRef.current);
         routeLayerRef.current = null;
@@ -144,34 +143,52 @@ export default function MapScreen({ onBack }: Props) {
 
     setCalculating(true);
     setRouteMode(mode);
-    try {
-      const profile = OSRM_PROFILE[mode];
-      const url = `https://router.project-osrm.org/route/v1/${profile}/${KIOSK.lng},${KIOSK.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
-      const res  = await fetch(url);
-      const data = await res.json();
-      if (data.code !== 'Ok' || !data.routes?.length) throw new Error('No route');
+    setRouteInfo(null);
 
-      const route = data.routes[0];
-      const coords: [number, number][] = route.geometry.coordinates.map(
-        ([lng, lat]: [number, number]) => [lat, lng]
-      );
+    const profile = OSRM_PROFILE[mode];
+    const coord   = `${KIOSK.lng},${KIOSK.lat};${dest.lng},${dest.lat}`;
+    const qs      = 'overview=full&geometries=geojson';
 
-      // Draw polyline
-      if (routeLayerRef.current && mapRef.current) mapRef.current.removeLayer(routeLayerRef.current);
-      const color = MODE_META[mode].color;
-      routeLayerRef.current = L.polyline(coords, { color, weight: 6, opacity: 0.85 }).addTo(mapRef.current!);
+    // Try primary OSRM server, then fallback
+    const urls = [
+      `https://router.project-osrm.org/route/v1/${profile}/${coord}?${qs}`,
+      `https://routing.openstreetmap.de/routed-${profile === 'driving' ? 'car' : profile}/route/v1/${profile}/${coord}?${qs}`,
+    ];
 
-      // Fit map to show kiosk + destination + route
-      const bounds = L.latLngBounds([[KIOSK.lat, KIOSK.lng], [dest.lat, dest.lng]]);
-      mapRef.current!.fitBounds(bounds, { padding: [80, 80], maxZoom: 16 });
+    let lastError: unknown;
+    for (const url of urls) {
+      try {
+        const res  = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        const data = await res.json();
+        if (data.code !== 'Ok' || !data.routes?.length) continue;
 
-      setRouteInfo({ distance: route.distance, duration: route.duration, mode });
-    } catch {
-      setRouteInfo(null);
-      setRouteMode(null);
-    } finally {
-      setCalculating(false);
+        const route = data.routes[0];
+        const coords: [number, number][] = route.geometry.coordinates.map(
+          ([lng, lat]: [number, number]) => [lat, lng]
+        );
+
+        if (routeLayerRef.current && mapRef.current) mapRef.current.removeLayer(routeLayerRef.current);
+        const color = MODE_META[mode].color;
+        routeLayerRef.current = L.polyline(coords, { color, weight: 6, opacity: 0.85 })
+          .addTo(mapRef.current!);
+
+        mapRef.current!.fitBounds(
+          L.latLngBounds([[KIOSK.lat, KIOSK.lng], [dest.lat, dest.lng]]),
+          { padding: [80, 80], maxZoom: 16 }
+        );
+
+        setRouteInfo({ distance: route.distance, duration: route.duration, mode });
+        setCalculating(false);
+        return; // success
+      } catch (e) {
+        lastError = e;
+      }
     }
+
+    // Both servers failed
+    console.warn('Route calculation failed:', lastError);
+    setRouteInfo({ distance: -1, duration: -1, mode }); // sentinel for error state
+    setCalculating(false);
   }, []);
 
   // ── routeMode ref: always reflects latest value in effects ──
@@ -367,12 +384,17 @@ function DetailPanel({
           {/* Route info */}
           {calculating && <div style={dp.routeInfo}>⏳ Vypočítava sa trasa...</div>}
 
-          {routeInfo && !calculating && (
+          {routeInfo && !calculating && routeInfo.distance >= 0 && (
             <div style={dp.routeResult}>
               <span style={{ ...dp.routeBadge, background: MODE_META[routeInfo.mode].color }}>
                 {MODE_META[routeInfo.mode].icon} {fmtTime(routeInfo.duration)}
               </span>
               <span style={dp.routeDist}>📏 {fmtDist(routeInfo.distance)}</span>
+            </div>
+          )}
+          {routeInfo && !calculating && routeInfo.distance < 0 && (
+            <div style={{ fontSize: 14, color: '#dc2626', fontStyle: 'italic' }}>
+              ⚠️ Trasu sa nepodarilo vypočítať. Skúste znova.
             </div>
           )}
         </div>

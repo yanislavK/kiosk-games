@@ -61,52 +61,62 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 function walkMin(m: number) { return Math.ceil(m / 70); } // ~70 m/min walking
 
-/** Try imhd.sk unofficial JSON API – returns empty array on CORS/network error */
+/** Fetch departures via our Vercel proxy (avoids imhd.sk CORS block) */
 async function fetchDepartures(stopName: string): Promise<Departure[]> {
   try {
-    const searchUrl = `https://imhd.sk/ba/api/1/zastavky?q=${encodeURIComponent(stopName)}`;
-    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(5000) });
+    // Step 1: search for stop ID
+    const searchRes = await fetch(
+      `/api/imhd?endpoint=zastavky&q=${encodeURIComponent(stopName)}`,
+      { signal: AbortSignal.timeout(6000) }
+    );
     if (!searchRes.ok) return [];
     const searchData = await searchRes.json();
-    const stop = Array.isArray(searchData) ? searchData[0] : searchData?.zastavky?.[0];
+    const stops = Array.isArray(searchData) ? searchData : searchData?.zastavky ?? [];
+    const stop = stops[0];
     if (!stop?.id) return [];
 
-    const depUrl = `https://imhd.sk/ba/api/1/odchody?zastavka=${stop.id}&typ=D`;
-    const depRes = await fetch(depUrl, { signal: AbortSignal.timeout(5000) });
+    // Step 2: fetch departures for that stop
+    const depRes = await fetch(
+      `/api/imhd?endpoint=odchody&zastavka=${stop.id}&typ=D`,
+      { signal: AbortSignal.timeout(6000) }
+    );
     if (!depRes.ok) return [];
     const depData = await depRes.json();
-    const items = depData?.odchody ?? depData ?? [];
+    const items: Record<string, unknown>[] = depData?.odchody ?? depData ?? [];
     const now = new Date();
 
-    return items.slice(0, 8).map((d: Record<string, unknown>) => {
+    return items.slice(0, 10).map((d) => {
       const timeStr = String(d.cas ?? d.time ?? '');
       const [h, m] = timeStr.split(':').map(Number);
       const dep = new Date(now);
       dep.setHours(h ?? 0, m ?? 0, 0, 0);
+      if (dep < now) dep.setDate(dep.getDate() + 1); // next day wrap
       const mins = Math.round((dep.getTime() - now.getTime()) / 60000);
       return {
         line: String(d.linka ?? d.line ?? '?'),
-        dest: String(d.ciel ?? d.destination ?? ''),
+        dest: String(d.ciel ?? d.cielova_zastavka ?? d.destination ?? ''),
         time: timeStr,
         mins,
-      };
-    }).filter((d: Departure) => d.mins >= -1);
+      } as Departure;
+    }).filter((d) => d.mins >= 0 && d.mins < 120);
   } catch {
     return [];
   }
 }
 
-/** Fetch stops near a lat/lng via Overpass – simplified, returns up to 3 closest */
+/** Fetch stops near a lat/lng via our Overpass proxy (POST avoids WAF 406) */
 async function fetchNearbyStops(lat: number, lng: number): Promise<Stop[]> {
   try {
     const q = `[out:json][timeout:15];
-      (node[highway=bus_stop](around:400,${lat},${lng});
-       node[public_transport=stop_position](around:400,${lat},${lng}););
-      out body;`;
-    const res = await fetch(
-      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
+(node[highway=bus_stop](around:400,${lat},${lng});
+ node[public_transport=stop_position](around:400,${lat},${lng}););
+out body;`;
+    const res = await fetch('/api/overpass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q }),
+      signal: AbortSignal.timeout(10000),
+    });
     const data = await res.json();
     const seen = new Set<string>();
     const stops: Stop[] = [];
