@@ -22,21 +22,21 @@ function createMarkerIcon(color: string, selected: boolean): L.DivIcon {
   const shadow = selected
     ? '0 4px 16px rgba(0,0,0,0.5), 0 0 0 3px ' + color
     : '0 3px 10px rgba(0,0,0,0.35)';
+  // iconSize [0,0] + iconAnchor [0,0] → Leaflet places the element at the coordinate
+  // without any margin offset; we use CSS translate to visually center the circle.
   return L.divIcon({
-    className: '',
+    className: 'custom-kiosk-marker',
     html: `<div style="
       width:${size}px;height:${size}px;
       background:${color};
       border-radius:50%;
       border:${border};
       box-shadow:${shadow};
-      display:flex;align-items:center;justify-content:center;
-      font-size:${selected ? 22 : 18}px;
-      transition:all 0.2s;
+      transform:translate(-50%,-50%);
       cursor:pointer;
     "></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
   });
 }
 
