@@ -169,29 +169,32 @@ export default function MapScreen({ onBack }: Props) {
 
 /* ── Detail Panel ─────────────────────────────────────────────── */
 function DetailPanel({ landmark, onClose }: { landmark: Landmark; onClose: () => void }) {
-  const [imgOk, setImgOk] = useState(true);
+  const [imgFailed, setImgFailed] = useState(false);
 
-  // Reset img state when landmark changes
-  useEffect(() => { setImgOk(true); }, [landmark.id]);
-
-  const hasPhoto = landmark.photo && imgOk;
+  useEffect(() => { setImgFailed(false); }, [landmark.id]);
 
   return (
     <div style={detail.container}>
-      {/* Photo column */}
-      {hasPhoto && (
-        <div style={detail.photoWrap}>
-          <img
-            src={landmark.photo}
-            alt={landmark.name}
-            style={detail.photo}
-            onError={() => setImgOk(false)}
-          />
+      {/* Photo column — always shown when landmark.photo is set; placeholder on error */}
+      {landmark.photo && (
+        <div style={{ ...detail.photoWrap, background: landmark.color + '18' }}>
+          {imgFailed ? (
+            <div style={detail.placeholder}>
+              <span style={{ fontSize: 72 }}>{landmark.icon}</span>
+            </div>
+          ) : (
+            <img
+              src={landmark.photo}
+              alt={landmark.name}
+              style={detail.photo}
+              onError={() => setImgFailed(true)}
+            />
+          )}
         </div>
       )}
 
       {/* Info column */}
-      <div style={{ ...detail.info, ...(hasPhoto ? {} : { width: '100%' }) }}>
+      <div style={{ ...detail.info, ...(!landmark.photo ? { width: '100%' } : {}) }}>
         <div style={detail.topRow}>
           <div style={detail.topLeft}>
             <span style={{
@@ -288,10 +291,14 @@ const detail: Record<string, React.CSSProperties> = {
     display: 'flex', height: '100%', overflow: 'hidden',
   },
   photoWrap: {
-    width: '400px', flexShrink: 0, overflow: 'hidden',
+    width: '400px', height: '100%', flexShrink: 0, overflow: 'hidden',
   },
   photo: {
     width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+  },
+  placeholder: {
+    width: '100%', height: '100%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   info: {
     flex: 1, padding: '24px 28px 16px', overflowY: 'auto',
