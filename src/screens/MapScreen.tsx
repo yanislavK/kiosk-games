@@ -129,12 +129,6 @@ export default function MapScreen({ onBack }: Props) {
     });
   }, [selected, activeCategory]);
 
-  // ── Fly to landmark ────────────────────────────────────────
-  useEffect(() => {
-    if (!selected || !mapRef.current) return;
-    if (!routeInfo) mapRef.current.flyTo([selected.lat, selected.lng], 15, { duration: 0.7 });
-  }, [selected]);
-
   // ── Calculate route via OSRM ───────────────────────────────
   const calcRoute = useCallback(async (mode: RouteMode, dest: Landmark) => {
     if (mode === 'transit') {
@@ -179,6 +173,22 @@ export default function MapScreen({ onBack }: Props) {
       setCalculating(false);
     }
   }, []);
+
+  // ── routeMode ref: always reflects latest value in effects ──
+  const routeModeRef = useRef<RouteMode | null>(null);
+  useEffect(() => { routeModeRef.current = routeMode; }, [routeMode]);
+
+  // ── Landmark change: recalculate route OR fly to it ────────
+  useEffect(() => {
+    if (!selected || !mapRef.current) return;
+    const mode = routeModeRef.current;
+    if (mode && mode !== 'transit') {
+      calcRoute(mode, selected);       // keep same transport mode, new destination
+    } else if (!mode) {
+      mapRef.current.flyTo([selected.lat, selected.lng], 15, { duration: 0.7 });
+    }
+    // transit mode: TransitPanel fetches its own data
+  }, [selected, calcRoute]);
 
   // ── Clear route ────────────────────────────────────────────
   const clearRoute = useCallback(() => {
