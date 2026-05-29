@@ -76,9 +76,8 @@ export const LANDMARKS: Landmark[] = [
     nameEn: "St. Martin's Cathedral",
     category: 'kostol',
     lat: 48.1420, lng: 17.1049,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/St._Martin%27s_Cathedral,_Bratislava
-    // note: filename contains literal í (not %C3%AD) as returned by API
-    photo: `${CDN}/1/1e/Catedral_de_San_Mart%C3%ADn%2C_Bratislava%2C_Eslovaquia%2C_2020-02-01%2C_DD_48.jpg/640px-Catedral_de_San_Mart%C3%ADn%2C_Bratislava%2C_Eslovaquia%2C_2020-02-01%2C_DD_48.jpg`,
+    // ASCII-only filename confirmed via commons API
+    photo: `${CDN}/7/71/Bratislava_-_St._Martins_Cathedral_from_Danube.jpg/640px-Bratislava_-_St._Martins_Cathedral_from_Danube.jpg`,
     description: 'Dóm sv. Martina je hlavný gotický chrám Bratislavy a najväčší kostol v meste. Od roku 1563 do roku 1830 bol korunovačným kostolom uhorských kráľov – celkovo tu bolo korunovaných 11 kráľov a 7 kráľovských manželiek. Na veži nesie pozlátenu korunu – repliku uhorskej koruny.',
     address: 'Rudnayovo nám. 1, 811 01 Bratislava',
     built: '14. – 15. storočie',
@@ -138,8 +137,8 @@ export const LANDMARKS: Landmark[] = [
     nameEn: "Michael's Gate",
     category: 'hrad',
     lat: 48.1452, lng: 17.1067,
-    // confirmed: sk.wikipedia.org/api/rest_v1/page/summary/Michalská_brána
-    photo: `${CDN}/7/79/Ba-michalsk%C3%A1_br%C3%A1na.jpg/640px-Ba-michalsk%C3%A1_br%C3%A1na.jpg`,
+    // ASCII-only filename confirmed via commons API
+    photo: `${CDN}/5/55/View-of-Michaels-Gate-Bratislava-Slovakia.jpg/640px-View-of-Michaels-Gate-Bratislava-Slovakia.jpg`,
     description: 'Michalská brána je jediná zachovaná mestská brána z pôvodného stredovekého opevnenia Bratislavy. Postavená bola v 14. storočí a prešla viacerými prestavbami. Veža je vysoká 51 metrov a na jej vrchole je socha archanjela Michala zabíjajúceho draka. V bráne sa nachádza expozícia zbraní a ukážka mestského opevnenia.',
     address: 'Michalská, 811 01 Bratislava',
     built: '14. storočie (veža 1758)',
@@ -177,8 +176,8 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Hviezdoslav Square',
     category: 'namestie',
     lat: 48.1416, lng: 17.1086,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Hviezdoslav_Square
-    photo: `${CDN}/d/d1/Hviezdoslavovo_n%C3%A1mestie_%2810267450433%29.jpg/640px-Hviezdoslavovo_n%C3%A1mestie_%2810267450433%29.jpg`,
+    // ASCII-only filename confirmed via commons API
+    photo: `${CDN}/7/76/Bratislava_square_Hviezdoslavovo.jpg/640px-Bratislava_square_Hviezdoslavovo.jpg`,
     description: 'Hviezdoslavovo námestie je reprezentačné námestie v historickom centre Bratislavy. Lemuje ho Historická budova SND, Hotel Carlton a množstvo kaviarní a reštaurácií. V strede stojí pomník básnika Pavla Országha Hviezdoslava. Námestie je obľúbeným miestom odpočinku a kultúrnych podujatí.',
     address: 'Hviezdoslavovo nám., 811 02 Bratislava',
     built: '19. storočie',
@@ -285,8 +284,8 @@ export const LANDMARKS: Landmark[] = [
     nameEn: 'Bratislava Main Train Station',
     category: 'doprava',
     lat: 48.1577, lng: 17.1068,
-    // confirmed: en.wikipedia.org/api/rest_v1/page/summary/Bratislava_hlavn%C3%A1_stanica
-    photo: `${CDN}/8/83/Bratislava_hlavn%C3%A1_stanica_September_2019.jpg/640px-Bratislava_hlavn%C3%A1_stanica_September_2019.jpg`,
+    // ASCII-only filename confirmed via commons API
+    photo: `${CDN}/8/8d/Bratislava_Main_Railway_Station.JPG/640px-Bratislava_Main_Railway_Station.JPG`,
     description: 'Bratislava hlavná stanica je najväčšia a najdôležitejšia železničná stanica v Bratislave. Odchádzajú odtiaľto vlaky do celej SR, medzinárodné spoje do Viedne, Prahy, Budapešti a ďalších miest. V priestoroch stanice sa nachádzajú obchody, reštaurácie a informačné centrum.',
     address: 'Predstaničné nám. 1, 811 04 Bratislava',
     icon: '🚂', color: '#b45309',
