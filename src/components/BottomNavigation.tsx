@@ -1,6 +1,6 @@
 import React from 'react';
 
-type NavTab = 'home' | 'leaderboard' | 'map' | 'about';
+type NavTab = 'home' | 'leaderboard' | 'map' | 'parking' | 'about';
 
 interface Props {
   active: NavTab;
@@ -8,10 +8,11 @@ interface Props {
 }
 
 const navItems: { id: NavTab; label: string; icon: string }[] = [
-  { id: 'home', label: 'DOMOV', icon: '🏠' },
+  { id: 'home',        label: 'DOMOV',    icon: '🏠' },
   { id: 'leaderboard', label: 'REBRÍČKY', icon: '🏆' },
-  { id: 'map', label: 'MAPA', icon: '🗺️' },
-  { id: 'about', label: 'O KIOSKU', icon: 'ℹ️' },
+  { id: 'map',         label: 'MAPA',     icon: '🗺️' },
+  { id: 'parking',     label: 'PARKOVANIE', icon: '🅿️' },
+  { id: 'about',       label: 'O KIOSKU', icon: 'ℹ️' },
 ];
 
 export default function BottomNavigation({ active, onNavigate }: Props) {

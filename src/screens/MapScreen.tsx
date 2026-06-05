@@ -48,6 +48,26 @@ function fmtTime(s: number) {
   return `${Math.floor(min / 60)} h ${min % 60} min`;
 }
 
+function normalizeSearch(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function landmarkMatchesSearch(lm: Landmark, query: string) {
+  const q = normalizeSearch(query);
+  if (!q) return true;
+  return normalizeSearch([
+    lm.name,
+    lm.nameEn,
+    lm.address,
+    lm.description,
+    CATEGORY_LABELS[lm.category],
+  ].join(' ')).includes(q);
+}
+
 // ── Marker icons ──────────────────────────────────────────────
 function landmarkIcon(color: string, selected: boolean): L.DivIcon {
   const size = selected ? 46 : 34;
@@ -84,6 +104,7 @@ export default function MapScreen({ onBack }: Props) {
 
   const [selected,       setSelected]       = useState<Landmark | null>(null);
   const [activeCategory, setActiveCategory] = useState<LandmarkCategory | 'all'>('all');
+  const [searchQuery,    setSearchQuery]    = useState('');
   const [routeInfo,      setRouteInfo]      = useState<RouteInfo | null>(null);
   const [routeMode,      setRouteMode]      = useState<RouteMode | null>(null);
   const [calculating,    setCalculating]    = useState(false);
@@ -118,11 +139,13 @@ export default function MapScreen({ onBack }: Props) {
     LANDMARKS.forEach((lm) => {
       const marker = markersRef.current.get(lm.id);
       if (!marker) return;
-      const isFiltered = activeCategory !== 'all' && lm.category !== activeCategory;
+      const isFiltered =
+        (activeCategory !== 'all' && lm.category !== activeCategory) ||
+        !landmarkMatchesSearch(lm, searchQuery);
       marker.setIcon(landmarkIcon(isFiltered ? '#cbd5e1' : lm.color, selected?.id === lm.id));
       marker.setOpacity(isFiltered ? 0.35 : 1);
     });
-  }, [selected, activeCategory]);
+  }, [selected, activeCategory, searchQuery]);
 
   // Generation counter — cancels stale async results when mode/landmark changes quickly
   const routeGenRef = useRef(0);
@@ -219,9 +242,10 @@ export default function MapScreen({ onBack }: Props) {
     mapRef.current?.flyTo(MAP_CENTER, DEFAULT_ZOOM, { duration: 0.8 });
   };
 
-  const filteredList = activeCategory === 'all'
-    ? LANDMARKS
-    : LANDMARKS.filter((l) => l.category === activeCategory);
+  const filteredList = LANDMARKS.filter((l) => {
+    const categoryMatch = activeCategory === 'all' || l.category === activeCategory;
+    return categoryMatch && landmarkMatchesSearch(l, searchQuery);
+  });
 
   return (
     <div style={s.container}>
@@ -240,6 +264,18 @@ export default function MapScreen({ onBack }: Props) {
 
       {/* Category filter */}
       <div style={s.filterWrap}>
+        <div style={s.searchRow}>
+          <span style={s.searchIcon}>🔎</span>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Hľadať miesto, adresu alebo kategóriu"
+            style={s.searchInput}
+          />
+          {searchQuery && (
+            <button style={s.searchClear} onClick={() => setSearchQuery('')}>✕</button>
+          )}
+        </div>
         <div style={s.filterRow}>
           <span style={s.groupLabel}>PAMIATKY</span>
           <button style={{ ...s.chip, ...(activeCategory === 'all' ? s.chipActive : {}) }}
@@ -296,7 +332,7 @@ export default function MapScreen({ onBack }: Props) {
             onClearRoute={clearRoute}
           />
         ) : (
-          <LandmarkList landmarks={filteredList} onSelect={setSelected} />
+          <LandmarkList landmarks={filteredList} onSelect={setSelected} searchQuery={searchQuery} />
         )}
       </div>
     </div>
@@ -399,11 +435,16 @@ function DetailPanel({
 }
 
 /* ── Landmark List ─────────────────────────────────────────── */
-function LandmarkList({ landmarks, onSelect }: { landmarks: Landmark[]; onSelect: (l: Landmark) => void }) {
+function LandmarkList({ landmarks, onSelect, searchQuery }: { landmarks: Landmark[]; onSelect: (l: Landmark) => void; searchQuery: string }) {
   return (
     <div style={ll.container}>
-      <div style={ll.label}>Kliknite na marker na mape alebo vyberte miesto zo zoznamu</div>
+      <div style={ll.label}>
+        {searchQuery ? `${landmarks.length} výsledkov vyhľadávania` : 'Kliknite na marker na mape alebo vyberte miesto zo zoznamu'}
+      </div>
       <div style={ll.scroll}>
+        {landmarks.length === 0 && (
+          <div style={ll.empty}>Nič sa nenašlo. Skúste inú frázu alebo kategóriu.</div>
+        )}
         {landmarks.map((lm) => (
           <button key={lm.id} style={ll.card} onClick={() => onSelect(lm)}>
             <div style={{ ...ll.dot, background: lm.color }}>{lm.icon}</div>
@@ -429,6 +470,10 @@ const s: Record<string, React.CSSProperties> = {
   subtitleText: { fontSize: '15px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 },
   countBadge: { background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: '20px', padding: '7px 16px', fontSize: '16px', fontWeight: 700, flexShrink: 0 },
   filterWrap: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0 },
+  searchRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '14px' },
+  searchIcon: { fontSize: '20px', flexShrink: 0, opacity: 0.75 },
+  searchInput: { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: '#1e293b', fontSize: '17px', fontWeight: 600 },
+  searchClear: { width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: '#e2e8f0', color: '#475569', fontSize: '15px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   filterRow: { display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '2px' },
   groupLabel: { fontSize: '10px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.1em', flexShrink: 0 },
   chip: { flexShrink: 0, padding: '7px 14px', borderRadius: '18px', border: '2px solid #e2e8f0', background: '#f8fafc', color: '#475569', fontSize: '15px', fontWeight: 600, cursor: 'pointer' },
@@ -470,6 +515,7 @@ const ll: Record<string, React.CSSProperties> = {
   container: { height: '100%', display: 'flex', flexDirection: 'column' },
   label: { fontSize: '15px', color: '#94a3b8', fontWeight: 600, padding: '10px 24px 8px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 },
   scroll: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 18px' },
+  empty: { padding: '28px 12px', color: '#64748b', fontSize: '17px', fontWeight: 600, textAlign: 'center' },
   card: { display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', cursor: 'pointer', textAlign: 'left', flexShrink: 0 },
   dot: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0, border: '3px solid rgba(255,255,255,0.5)' },
   cardText: { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 },

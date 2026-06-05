@@ -1,5 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const SPEED_MPS: Record<string, number> = {
+  walk: 1.25, // 4.5 km/h
+  bike: 4.2,  // 15 km/h
+  car: 10.8,  // 39 km/h city estimate
+};
+
+function withModeDuration(data: any, mode: string) {
+  const speed = SPEED_MPS[mode];
+  if (!speed || !Array.isArray(data.routes)) return data;
+
+  return {
+    ...data,
+    routes: data.routes.map((route: any) => ({
+      ...route,
+      duration: Math.round(route.distance / speed),
+    })),
+  };
+}
+
 // Proxy for OSRM routing – tries multiple profile name conventions
 // (public OSRM servers disagree: 'walking' vs 'foot', 'cycling' vs 'bike')
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -19,20 +38,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Try all known variants for each mode.
   const attempts: string[] =
     mode === 'walk' ? [
-      `https://router.project-osrm.org/route/v1/walking/${coord}?${qs}`,
-      `https://router.project-osrm.org/route/v1/foot/${coord}?${qs}`,
       `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coord}?${qs}`,
       `https://routing.openstreetmap.de/routed-foot/route/v1/walking/${coord}?${qs}`,
+      `https://router.project-osrm.org/route/v1/walking/${coord}?${qs}`,
+      `https://router.project-osrm.org/route/v1/foot/${coord}?${qs}`,
     ] : mode === 'bike' ? [
-      `https://router.project-osrm.org/route/v1/cycling/${coord}?${qs}`,
-      `https://router.project-osrm.org/route/v1/bike/${coord}?${qs}`,
       `https://routing.openstreetmap.de/routed-bike/route/v1/bike/${coord}?${qs}`,
       `https://routing.openstreetmap.de/routed-bike/route/v1/cycling/${coord}?${qs}`,
+      `https://router.project-osrm.org/route/v1/cycling/${coord}?${qs}`,
+      `https://router.project-osrm.org/route/v1/bike/${coord}?${qs}`,
     ] : [
-      `https://router.project-osrm.org/route/v1/driving/${coord}?${qs}`,
-      `https://router.project-osrm.org/route/v1/car/${coord}?${qs}`,
       `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coord}?${qs}`,
       `https://routing.openstreetmap.de/routed-car/route/v1/car/${coord}?${qs}`,
+      `https://router.project-osrm.org/route/v1/driving/${coord}?${qs}`,
+      `https://router.project-osrm.org/route/v1/car/${coord}?${qs}`,
     ];
 
   for (const url of attempts) {
@@ -46,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (data.code === 'Ok' && data.routes?.length) {
         // Cache successful routes for 1 hour (roads don't change often)
         res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
-        return res.json(data);
+        return res.json(withModeDuration(data, mode));
       }
     } catch { /* try next */ }
   }
