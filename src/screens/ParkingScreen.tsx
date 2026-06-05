@@ -5,11 +5,9 @@ import { PARKING_LOTS, type ParkingLot } from '../data/bratislavaParkingZones';
 
 interface Props { onBack: () => void }
 
-// Bratislava centre — shows most PAAS zones
 const MAP_CENTER: [number, number] = [48.1456, 17.1108];
 const DEFAULT_ZOOM = 13;
 
-// ── PAAS zone type (comes from /api/paas-zones) ───────────────
 export interface PAASZone {
   id: number;
   code: string;
@@ -21,7 +19,6 @@ export interface PAASZone {
   rings: [number, number][][];
 }
 
-// ── Payment flow ──────────────────────────────────────────────
 type PayStep = 'none' | 'plate' | 'duration' | 'summary' | 'success';
 
 interface Payment {
@@ -37,19 +34,27 @@ interface Payment {
 }
 
 const DURATION_OPTS = [
-  { label: '30 min', minutes: 30 },
-  { label: '1 hod',  minutes: 60 },
-  { label: '2 hod',  minutes: 120 },
-  { label: '3 hod',  minutes: 180 },
-  { label: '4 hod',  minutes: 240 },
+  { label: '30 min',   minutes: 30  },
+  { label: '1 hod',    minutes: 60  },
+  { label: '2 hod',    minutes: 120 },
+  { label: '3 hod',    minutes: 180 },
+  { label: '4 hod',    minutes: 240 },
   { label: 'Celý deň', minutes: 480 },
 ];
 
-const REGIONS = [
-  'BA','BL','SC','PK','MA','TT','NR','ZA','BB','PO','KE',
-  'TN','NM','LC','ZI','ZK','ZL','ZM','ZV','DS','GA','MI',
-  'MY','NZ','PE','PB','PD','PT','RA','RK','SA','SE','SI',
-  'SK','SL','SN','SO','TA','TO','TS','TV','VK',
+// QWERTY rows for the virtual keyboard
+const KB_ROWS = [
+  ['1','2','3','4','5','6','7','8','9','0'],
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['Z','X','C','V','B','N','M','-'],
+];
+
+const PRICE_LEGEND = [
+  { label: '€2.00/hod', color: '#be123c', desc: 'Centrum SM0'   },
+  { label: '€1.50/hod', color: '#dc2626', desc: 'Staré Mesto'   },
+  { label: '€1.00/hod', color: '#ea580c', desc: 'NM, RU1, PE1'  },
+  { label: '€0.50/hod', color: '#ca8a04', desc: 'Okrajové zóny' },
 ];
 
 function calcPrice(price: number, minutes: number) {
@@ -72,23 +77,15 @@ function lotIcon(color: string, sel: boolean): L.DivIcon {
   });
 }
 
-// ── Price tier legend ─────────────────────────────────────────
-const PRICE_LEGEND = [
-  { label: '€2.00/hod', color: '#be123c', desc: 'Centrum SM0' },
-  { label: '€1.50/hod', color: '#dc2626', desc: 'Staré Mesto' },
-  { label: '€1.00/hod', color: '#ea580c', desc: 'NM, RU1, PE1' },
-  { label: '€0.50/hod', color: '#ca8a04', desc: 'Okrajové zóny' },
-];
-
 export default function ParkingScreen({ onBack }: Props) {
   const mapRef    = useRef<L.Map | null>(null);
   const mapElRef  = useRef<HTMLDivElement>(null);
   const lotRefs   = useRef<Map<string, L.Marker>>(new Map());
   const zoneLayer = useRef<L.LayerGroup | null>(null);
 
-  const [paasZones,  setPaasZones]  = useState<PAASZone[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [loadError,  setLoadError]  = useState<string | null>(null);
+  const [paasZones, setPaasZones] = useState<PAASZone[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [selZone, setSelZone] = useState<PAASZone | null>(null);
   const [selLot,  setSelLot]  = useState<ParkingLot | null>(null);
@@ -98,25 +95,15 @@ export default function ParkingScreen({ onBack }: Props) {
     plate: '', durationMinutes: 60, totalPrice: 0, code: '', paidAt: null,
   });
 
-  // Plate input
-  const [pRegion, setPRegion] = useState('BA');
-  const [pDigits, setPDigits] = useState('');
-  const [pSuffix, setPSuffix] = useState('');
-  const [pField,  setPField]  = useState<'digits' | 'suffix'>('digits');
+  // Free-form plate input
+  const [plate, setPlate] = useState('');
 
-  // ── Fetch PAAS zones from API ─────────────────────────────
+  // ── Fetch PAAS zones ──────────────────────────────────────
   useEffect(() => {
     fetch('/api/paas-zones')
       .then(r => r.json())
-      .then(d => {
-        if (d.error) throw new Error(d.error);
-        setPaasZones(d.zones ?? []);
-        setLoading(false);
-      })
-      .catch(e => {
-        setLoadError(String(e));
-        setLoading(false);
-      });
+      .then(d => { if (d.error) throw new Error(d.error); setPaasZones(d.zones ?? []); setLoading(false); })
+      .catch(e => { setLoadError(String(e)); setLoading(false); });
   }, []);
 
   // ── Init map ──────────────────────────────────────────────
@@ -127,16 +114,11 @@ export default function ParkingScreen({ onBack }: Props) {
       attribution: '© OpenStreetMap contributors', maxZoom: 19,
     }).addTo(map);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
-
     zoneLayer.current = L.layerGroup().addTo(map);
 
-    // Parking lot markers
-    PARKING_LOTS.forEach((lot) => {
+    PARKING_LOTS.forEach(lot => {
       const mk = L.marker([lot.lat, lot.lng], { icon: lotIcon('#475569', false) })
-        .addTo(map).on('click', () => {
-          setSelLot(lot); setSelZone(null); setPayStep('none');
-          map.flyTo([lot.lat, lot.lng], 16, { duration: 0.6 });
-        });
+        .addTo(map).on('click', () => { setSelLot(lot); setSelZone(null); setPayStep('none'); map.flyTo([lot.lat, lot.lng], 16, { duration: 0.6 }); });
       lotRefs.current.set(lot.id, mk);
     });
 
@@ -144,36 +126,22 @@ export default function ParkingScreen({ onBack }: Props) {
     return () => { map.remove(); mapRef.current = null; };
   }, []);
 
-  // ── Draw PAAS zone polygons once loaded ───────────────────
+  // ── Draw zone polygons ────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !zoneLayer.current || !paasZones.length) return;
     zoneLayer.current.clearLayers();
-
-    paasZones.forEach((zone) => {
-      // Handle multi-ring polygons: first ring = outer, rest = holes
-      // For zones with multiple outer rings, draw each as separate polygon
+    paasZones.forEach(zone => {
       zone.rings.forEach((ring, ri) => {
-        L.polygon(ring, {
-          color: zone.color,
-          fillColor: zone.color,
-          fillOpacity: ri === 0 ? 0.20 : 0.05,
-          weight: 2,
-          opacity: 0.85,
-        })
+        L.polygon(ring, { color: zone.color, fillColor: zone.color, fillOpacity: ri === 0 ? 0.20 : 0.05, weight: 2, opacity: 0.85 })
           .addTo(zoneLayer.current!)
-          .on('click', () => {
-            setSelZone(zone); setSelLot(null); setPayStep('none');
-          });
+          .on('click', () => { setSelZone(zone); setSelLot(null); setPayStep('none'); });
       });
     });
   }, [paasZones]);
 
-  // ── Highlight selected zone ───────────────────────────────
-  // Zone highlight handled by polygon re-draw in paasZones effect
-
-  // Update lot icon on selection change
+  // ── Sync lot icon on selection ────────────────────────────
   useEffect(() => {
-    PARKING_LOTS.forEach((lot) => {
+    PARKING_LOTS.forEach(lot => {
       const color = selLot?.id === lot.id ? '#1e293b' : '#475569';
       lotRefs.current.get(lot.id)?.setIcon(lotIcon(color, selLot?.id === lot.id));
     });
@@ -186,63 +154,39 @@ export default function ParkingScreen({ onBack }: Props) {
 
   const startPayment = useCallback((name: string, code: string, color: string, price: number) => {
     setPayment(p => ({ ...p, zoneName: name, zoneCode: code, color, pricePerHour: price, durationMinutes: 60 }));
-    setPDigits(''); setPSuffix(''); setPField('digits');
+    setPlate('');
     setPayStep('plate');
   }, []);
 
+  // ── Keyboard handler ──────────────────────────────────────
   const handleKey = useCallback((ch: string) => {
-    if (pField === 'digits') {
-      if (ch === '⌫') { setPDigits(d => d.slice(0, -1)); return; }
-      if (pDigits.length < 3) {
-        const nd = pDigits + ch;
-        setPDigits(nd);
-        if (nd.length === 3) setPField('suffix');
-      }
-    } else {
-      if (ch === '⌫') { setPSuffix(s => s.slice(0, -1)); return; }
-      if (pSuffix.length < 2) setPSuffix(s => s + ch);
-    }
-  }, [pField, pDigits, pSuffix]);
+    if (ch === '⌫')  { setPlate(p => p.slice(0, -1)); return; }
+    if (ch === 'CLR') { setPlate(''); return; }
+    if (plate.length < 15) setPlate(p => p + ch);
+  }, [plate]);
 
-  const plateOk = pDigits.length === 3 && pSuffix.length === 2;
+  const plateOk = plate.trim().length >= 2;
 
   const confirmPayment = useCallback(() => {
-    const plate = `${pRegion} ${pDigits} ${pSuffix}`;
     const price = calcPrice(payment.pricePerHour, payment.durationMinutes);
-    setPayment(p => ({ ...p, plate, totalPrice: price, code: genCode(), paidAt: new Date() }));
+    setPayment(p => ({ ...p, plate: plate.trim(), totalPrice: price, code: genCode(), paidAt: new Date() }));
     setPayStep('success');
-  }, [pRegion, pDigits, pSuffix, payment]);
+  }, [plate, payment]);
 
-  const panelH = payStep === 'plate' ? 870 : payStep === 'none' ? 520 : 640;
+  const panelH = payStep === 'plate' ? 830 : payStep === 'none' ? 520 : 640;
 
   const renderPanel = () => {
-    if (payStep === 'plate')    return <PlateStep    pRegion={pRegion} setPRegion={setPRegion} pDigits={pDigits} pSuffix={pSuffix} pField={pField} setPField={setPField} handleKey={handleKey} plateOk={plateOk} payment={payment} onNext={() => setPayStep('duration')} onBack={() => setPayStep('none')} />;
+    if (payStep === 'plate')    return <PlateStep    plate={plate} handleKey={handleKey} plateOk={plateOk} payment={payment} onNext={() => setPayStep('duration')} onBack={() => setPayStep('none')} />;
     if (payStep === 'duration') return <DurationStep payment={payment} setPayment={setPayment} onNext={() => setPayStep('summary')} onBack={() => setPayStep('plate')} />;
-    if (payStep === 'summary')  return <SummaryStep  payment={payment} pRegion={pRegion} pDigits={pDigits} pSuffix={pSuffix} onConfirm={confirmPayment} onBack={() => setPayStep('duration')} />;
+    if (payStep === 'summary')  return <SummaryStep  payment={payment} plate={plate} onConfirm={confirmPayment} onBack={() => setPayStep('duration')} />;
     if (payStep === 'success')  return <SuccessStep  payment={payment} onDone={handleClose} />;
-    if (selZone) return (
-      <ZoneDetail
-        name={selZone.name} code={selZone.code} fullCode={selZone.fullCode}
-        color={selZone.color} price={selZone.pricePerHour} hours={selZone.hours}
-        onClose={handleClose}
-        onPay={() => startPayment(selZone.name, selZone.code, selZone.color, selZone.pricePerHour)}
-      />
-    );
-    if (selLot) return (
-      <ZoneDetail
-        name={selLot.name} code={selLot.zone} fullCode={selLot.address}
-        color='#475569' price={selLot.pricePerHour} hours={selLot.openHours}
-        address={selLot.address} capacity={selLot.capacity} lotType={selLot.type}
-        onClose={handleClose}
-        onPay={() => startPayment(selLot.name, selLot.zone, '#475569', selLot.pricePerHour)}
-      />
-    );
+    if (selZone) return <ZoneDetail name={selZone.name} code={selZone.code} fullCode={selZone.fullCode} color={selZone.color} price={selZone.pricePerHour} hours={selZone.hours} onClose={handleClose} onPay={() => startPayment(selZone.name, selZone.code, selZone.color, selZone.pricePerHour)} />;
+    if (selLot)  return <ZoneDetail name={selLot.name} code={selLot.zone} fullCode={selLot.address} color='#475569' price={selLot.pricePerHour} hours={selLot.openHours} address={selLot.address} capacity={selLot.capacity} lotType={selLot.type} onClose={handleClose} onPay={() => startPayment(selLot.name, selLot.zone, '#475569', selLot.pricePerHour)} />;
     return <ZoneOverview zones={paasZones} loading={loading} error={loadError} />;
   };
 
   return (
     <div style={s.container}>
-      {/* Header */}
       <div style={s.header}>
         <button style={s.backBtn} onClick={onBack}>← Späť</button>
         <div style={s.htitle}>
@@ -252,7 +196,6 @@ export default function ParkingScreen({ onBack }: Props) {
             <div style={s.sub}>Bratislavský parkovací asistent · paas.sk</div>
           </div>
         </div>
-        {/* Price legend */}
         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
           {PRICE_LEGEND.map(l => (
             <div key={l.label} style={{ ...s.legendPill, background: l.color }} title={l.desc}>{l.label}</div>
@@ -260,10 +203,8 @@ export default function ParkingScreen({ onBack }: Props) {
         </div>
       </div>
 
-      {/* Map */}
       <div ref={mapElRef} style={s.map} />
 
-      {/* Bottom panel */}
       <div style={{ ...s.panel, height: panelH }}>
         {renderPanel()}
       </div>
@@ -287,20 +228,15 @@ function ZoneOverview({ zones, loading, error }: { zones: PAASZone[]; loading: b
       <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4, maxWidth: 500, textAlign: 'center' }}>{error}</div>
     </div>
   );
-
-  // Group by district for summary
   const districts: Record<string, { count: number; color: string; price: number }> = {};
   zones.forEach(z => {
-    const prefix = z.code.replace(/\d.*/, ''); // SM, NM, RU, etc.
+    const prefix = z.code.replace(/\d.*/, '');
     if (!districts[prefix]) districts[prefix] = { count: 0, color: z.color, price: z.pricePerHour };
     districts[prefix].count++;
   });
-
   return (
     <div style={ov.wrap}>
-      <div style={ov.hint}>
-        🅿️ Načítaných <strong>{zones.length}</strong> aktívnych PAAS zón · Kliknite na zónu na mape
-      </div>
+      <div style={ov.hint}>🅿️ Načítaných <strong>{zones.length}</strong> aktívnych PAAS zón · Kliknite na zónu na mape</div>
       <div style={ov.districtRow}>
         {Object.entries(districts).map(([prefix, d]) => (
           <div key={prefix} style={{ ...ov.districtChip, borderColor: d.color }}>
@@ -335,94 +271,62 @@ function ZoneDetail({ name, code, fullCode, color, price, hours, address, capaci
     <div style={zd.wrap}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <button style={zd.backBtn} onClick={onClose}>← Späť</button>
-        <div style={{ ...zd.badge, background: color }}>
-          {address ? '🅿️ Parkovisko' : `Zóna ${code}`}
-        </div>
+        <div style={{ ...zd.badge, background: color }}>{address ? '🅿️ Parkovisko' : `Zóna ${code}`}</div>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 28, fontWeight: 900, color }}>
-          €{price.toFixed(2)}<span style={{ fontSize: 15, color: '#64748b' }}>/hod</span>
-        </span>
+        <span style={{ fontSize: 28, fontWeight: 900, color }}>€{price.toFixed(2)}<span style={{ fontSize: 15, color: '#64748b' }}>/hod</span></span>
       </div>
-
       <h3 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, color: '#1e293b' }}>{name}</h3>
-
       {address && <div style={zd.meta}>📍 {address}</div>}
       {capacity && <div style={zd.meta}>{lotType === 'garage' ? '🏢 Garáž' : '🅿️ Parkovisko'} · 🚗 {capacity} miest</div>}
       {!address && fullCode !== code && <div style={zd.meta}>📌 Kódy: {fullCode}</div>}
       <div style={zd.meta}>⏰ {hours}</div>
-
-      <button style={{ ...zd.payBtn, background: color }} onClick={onPay}>
-        💳 Zaplatiť parkovanie
-      </button>
+      <button style={{ ...zd.payBtn, background: color }} onClick={onPay}>💳 Zaplatiť parkovanie</button>
     </div>
   );
 }
 
-/* ── Plate step ──────────────────────────────────────────────── */
-function PlateStep({ pRegion, setPRegion, pDigits, pSuffix, pField, setPField, handleKey, plateOk, payment, onNext, onBack }: {
-  pRegion: string; setPRegion: (r: string) => void;
-  pDigits: string; pSuffix: string;
-  pField: 'digits' | 'suffix'; setPField: (f: 'digits' | 'suffix') => void;
-  handleKey: (ch: string) => void;
+/* ── Plate step — free-form QWERTY ───────────────────────────── */
+function PlateStep({ plate, handleKey, plateOk, payment, onNext, onBack }: {
+  plate: string; handleKey: (ch: string) => void;
   plateOk: boolean; payment: Payment;
   onNext: () => void; onBack: () => void;
 }) {
   return (
     <div style={st.wrap}>
-      <StepHeader step={1} label="Zadajte ŠPZ vozidla" color={payment.color} onBack={onBack} />
+      <StepHeader step={1} label="Zadajte EČV vozidla" color={payment.color} onBack={onBack} />
 
-      <div style={st.previewWrap}>
-        <div style={st.plate}>
-          <div style={st.plateFlag}>🇸🇰<br /><span style={{ fontSize: 13, letterSpacing: 1 }}>SK</span></div>
-          <div style={st.plateNum}>
-            <span style={{ color: '#1e40af', fontWeight: 900 }}>{pRegion}</span>
-            <span style={{ color: '#111' }}>{' '}{pDigits || <span style={{ opacity: 0.3 }}>000</span>}</span>
-            <span style={{ color: '#111', opacity: pSuffix ? 1 : 0.4 }}>{' '}{pSuffix || 'AA'}</span>
+      {/* Plate display */}
+      <div style={st.plateWrap}>
+        <div style={st.plateBox}>
+          <span style={st.plateText}>{plate || <span style={{ opacity: 0.25 }}>napr. BA 123AB · M-AB 123</span>}</span>
+          <span style={st.cursor} />
+        </div>
+        <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6, textAlign: 'center' }}>
+          Akýkoľvek formát — SK, CZ, DE, AT, HU, PL, UA…
+        </div>
+      </div>
+
+      {/* QWERTY keyboard */}
+      <div style={st.keyboard}>
+        {KB_ROWS.map((row, ri) => (
+          <div key={ri} style={st.kbRow}>
+            {row.map(k => (
+              <button key={k} style={st.kbKey} onClick={() => handleKey(k)}>{k}</button>
+            ))}
           </div>
+        ))}
+        {/* Bottom row: space + backspace + clear */}
+        <div style={st.kbRow}>
+          <button style={{ ...st.kbKey, flex: 3 }} onClick={() => handleKey(' ')}>MEDZERA</button>
+          <button style={{ ...st.kbKey, flex: 1, background: '#fee2e2', borderColor: '#fca5a5', color: '#dc2626' }} onClick={() => handleKey('⌫')}>⌫</button>
+          <button style={{ ...st.kbKey, flex: 1, background: '#fef9c3', borderColor: '#fde047', color: '#92400e' }} onClick={() => handleKey('CLR')}>CLR</button>
         </div>
       </div>
-
-      <div style={st.regionRow}>
-        <span style={st.fieldLabel}>Kraj:</span>
-        <div style={st.regionScroll}>
-          {REGIONS.map(r => (
-            <button key={r} style={{ ...st.regBtn, ...(pRegion === r ? st.regBtnActive : {}) }}
-              onClick={() => setPRegion(r)}>{r}</button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-        <button style={{ ...st.tab, ...(pField === 'digits' ? { ...st.tabActive, background: payment.color, borderColor: payment.color } : {}) }}
-          onClick={() => setPField('digits')}>
-          🔢 Čísla ({pDigits.length}/3)
-        </button>
-        <button style={{ ...st.tab, ...(pField === 'suffix' ? { ...st.tabActive, background: payment.color, borderColor: payment.color } : {}), ...(pDigits.length < 3 ? { opacity: 0.4 } : {}) }}
-          onClick={() => { if (pDigits.length === 3) setPField('suffix'); }}
-          disabled={pDigits.length < 3}>
-          🔡 Písmená ({pSuffix.length}/2)
-        </button>
-      </div>
-
-      {pField === 'digits' ? (
-        <div style={st.numpad}>
-          {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((k, i) =>
-            k === '' ? <div key={i} /> :
-            <button key={i} style={k === '⌫' ? { ...st.key, ...st.keyDel } : st.key}
-              onClick={() => handleKey(k)}>{k}</button>
-          )}
-        </div>
-      ) : (
-        <div style={st.alphapad}>
-          {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((k, i) => (
-            <button key={i} style={st.keyAlpha} onClick={() => handleKey(k)}>{k}</button>
-          ))}
-          <button style={{ ...st.keyAlpha, ...st.keyDel, gridColumn: 'span 2' }} onClick={() => handleKey('⌫')}>⌫</button>
-        </div>
-      )}
 
       <button style={{ ...st.nextBtn, background: payment.color, ...(plateOk ? {} : { opacity: 0.35 }) }}
-        disabled={!plateOk} onClick={onNext}>Ďalej →</button>
+        disabled={!plateOk} onClick={onNext}>
+        Ďalej →
+      </button>
     </div>
   );
 }
@@ -455,11 +359,9 @@ function DurationStep({ payment, setPayment, onNext, onBack }: {
 }
 
 /* ── Summary step ────────────────────────────────────────────── */
-function SummaryStep({ payment, pRegion, pDigits, pSuffix, onConfirm, onBack }: {
-  payment: Payment; pRegion: string; pDigits: string; pSuffix: string;
-  onConfirm: () => void; onBack: () => void;
+function SummaryStep({ payment, plate, onConfirm, onBack }: {
+  payment: Payment; plate: string; onConfirm: () => void; onBack: () => void;
 }) {
-  const plate = `${pRegion} ${pDigits} ${pSuffix}`;
   const price = calcPrice(payment.pricePerHour, payment.durationMinutes);
   const durOpt = DURATION_OPTS.find(o => o.minutes === payment.durationMinutes);
   return (
@@ -468,9 +370,9 @@ function SummaryStep({ payment, pRegion, pDigits, pSuffix, onConfirm, onBack }: 
       <div style={sum.card}>
         <SumRow label="🅿️ Lokalita" val={payment.zoneName} />
         <SumRow label="📌 Kód zóny" val={payment.zoneCode} />
-        <SumRow label="🚗 ŠPZ"     val={plate} mono />
-        <SumRow label="⏱️ Doba"    val={durOpt?.label ?? '–'} />
-        <SumRow label="💶 Sadzba"  val={`€${payment.pricePerHour.toFixed(2)}/hod`} />
+        <SumRow label="🚗 EČV"      val={plate.trim()} mono />
+        <SumRow label="⏱️ Doba"     val={durOpt?.label ?? '–'} />
+        <SumRow label="💶 Sadzba"   val={`€${payment.pricePerHour.toFixed(2)}/hod`} />
         <div style={{ borderTop: '2px solid #e2e8f0', marginTop: 8, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 20, fontWeight: 800, color: '#1e293b' }}>💳 Spolu</span>
           <span style={{ fontSize: 36, fontWeight: 900, color: payment.color }}>€{price.toFixed(2)}</span>
@@ -503,9 +405,9 @@ function SuccessStep({ payment, onDone }: { payment: Payment; onDone: () => void
           <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' as const }}>Kód potvrdenia</span>
           <span style={{ fontSize: 24, fontWeight: 900, fontFamily: 'monospace', color: '#16a34a', letterSpacing: 3 }}>{payment.code}</span>
         </div>
-        <SumRow label="📌 Zóna"       val={`${payment.zoneCode} – ${payment.zoneName}`} />
-        <SumRow label="🚗 ŠPZ"        val={payment.plate} mono />
-        <SumRow label="💶 Zaplatené"  val={`€${payment.totalPrice.toFixed(2)}`} green />
+        <SumRow label="📌 Zóna"      val={`${payment.zoneCode} – ${payment.zoneName}`} />
+        <SumRow label="🚗 EČV"       val={payment.plate} mono />
+        <SumRow label="💶 Zaplatené" val={`€${payment.totalPrice.toFixed(2)}`} green />
         {validUntil && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
             <span style={{ fontSize: 15, color: '#64748b', fontWeight: 600 }}>⏱️ Platí do</span>
@@ -526,7 +428,7 @@ function SuccessStep({ payment, onDone }: { payment: Payment; onDone: () => void
 /* ── Shared ──────────────────────────────────────────────────── */
 function StepHeader({ step, label, color, onBack }: { step: number; label: string; color: string; onBack: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12, flexShrink: 0 }}>
       <button style={st.backSmall} onClick={onBack}>← Späť</button>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1 }}>Krok {step} / 3</div>
@@ -550,15 +452,15 @@ function SumRow({ label, val, mono, green }: { label: string; val: string; mono?
 
 /* ── Styles ──────────────────────────────────────────────────── */
 const s: Record<string, React.CSSProperties> = {
-  container: { display: 'flex', flexDirection: 'column', height: '100%', background: '#f0f4ff' },
-  header:    { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: 'linear-gradient(135deg,#1d4ed8,#2563eb)', flexShrink: 0 },
-  backBtn:   { background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 12, padding: '10px 16px', fontSize: 18, fontWeight: 700, cursor: 'pointer', flexShrink: 0 },
-  htitle:    { flex: 1, display: 'flex', alignItems: 'center', gap: 12 },
-  title:     { fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1.1 },
-  sub:       { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 },
-  legendPill:{ padding: '4px 10px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 800, border: '2px solid rgba(255,255,255,0.3)', flexShrink: 0 },
-  map:       { flex: 1, minHeight: 0 },
-  panel:     { flexShrink: 0, background: '#fff', borderTop: '3px solid #e2e8f0', overflow: 'hidden', transition: 'height 0.25s ease' },
+  container:  { display: 'flex', flexDirection: 'column', height: '100%', background: '#f0f4ff' },
+  header:     { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: 'linear-gradient(135deg,#1d4ed8,#2563eb)', flexShrink: 0 },
+  backBtn:    { background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 12, padding: '10px 16px', fontSize: 18, fontWeight: 700, cursor: 'pointer', flexShrink: 0 },
+  htitle:     { flex: 1, display: 'flex', alignItems: 'center', gap: 12 },
+  title:      { fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1.1 },
+  sub:        { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 },
+  legendPill: { padding: '4px 10px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 800, border: '2px solid rgba(255,255,255,0.3)', flexShrink: 0 },
+  map:        { flex: 1, minHeight: 0 },
+  panel:      { flexShrink: 0, background: '#fff', borderTop: '3px solid #e2e8f0', overflow: 'hidden', transition: 'height 0.25s ease' },
 };
 
 const ov: Record<string, React.CSSProperties> = {
@@ -580,25 +482,18 @@ const zd: Record<string, React.CSSProperties> = {
 };
 
 const st: Record<string, React.CSSProperties> = {
-  wrap:       { display: 'flex', flexDirection: 'column', height: '100%', padding: '14px 20px 12px' },
-  backSmall:  { padding: '8px 16px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#f8fafc', fontWeight: 700, fontSize: 16, cursor: 'pointer', flexShrink: 0 },
-  previewWrap:{ display: 'flex', justifyContent: 'center', marginBottom: 12, flexShrink: 0 },
-  plate:      { display: 'flex', alignItems: 'center', background: '#fff', border: '3px solid #1e293b', borderRadius: 10, overflow: 'hidden', height: 88, boxShadow: '0 4px 16px rgba(0,0,0,0.2)' },
-  plateFlag:  { background: '#1e40af', color: '#fff', width: 68, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, flexShrink: 0 },
-  plateNum:   { fontSize: 38, fontWeight: 900, letterSpacing: 4, padding: '0 24px', fontFamily: '"Arial Black", sans-serif', color: '#1e293b' },
-  regionRow:  { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexShrink: 0 },
-  fieldLabel: { fontSize: 15, fontWeight: 700, color: '#475569', flexShrink: 0 },
-  regionScroll:{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, paddingBottom: 4 },
-  regBtn:     { padding: '7px 13px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#475569', fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 },
-  regBtnActive:{ background: '#2563eb', borderColor: '#2563eb', color: '#fff' },
-  tab:        { flex: 1, padding: '10px 0', borderRadius: 12, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#475569', fontSize: 16, fontWeight: 700, cursor: 'pointer' },
-  tabActive:  { color: '#fff' },
-  numpad:     { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12, flexShrink: 0 },
-  alphapad:   { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, marginBottom: 12, flexShrink: 0 },
-  key:        { padding: '14px 0', borderRadius: 12, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#1e293b', fontSize: 24, fontWeight: 800, cursor: 'pointer', textAlign: 'center' as const },
-  keyAlpha:   { padding: '10px 0', borderRadius: 10, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#1e293b', fontSize: 18, fontWeight: 700, cursor: 'pointer', textAlign: 'center' as const },
-  keyDel:     { background: '#fee2e2', borderColor: '#fca5a5', color: '#dc2626' },
-  nextBtn:    { padding: '16px 0', borderRadius: 16, border: 'none', color: '#fff', fontSize: 20, fontWeight: 900, cursor: 'pointer', width: '100%', marginTop: 'auto', flexShrink: 0 },
+  wrap:      { display: 'flex', flexDirection: 'column', height: '100%', padding: '14px 20px 12px' },
+  backSmall: { padding: '8px 16px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#f8fafc', fontWeight: 700, fontSize: 16, cursor: 'pointer', flexShrink: 0 },
+  // Plate display
+  plateWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 10, flexShrink: 0 },
+  plateBox:  { display: 'flex', alignItems: 'center', background: '#fff', border: '3px solid #1e293b', borderRadius: 12, padding: '10px 28px', minWidth: 420, minHeight: 72, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', gap: 4 },
+  plateText: { fontSize: 40, fontWeight: 900, letterSpacing: 5, fontFamily: '"Arial Black", sans-serif', color: '#1e293b', flex: 1, textAlign: 'center' as const },
+  cursor:    { display: 'inline-block', width: 3, height: 44, background: '#1e293b', borderRadius: 2, animation: 'none', opacity: 0.8, flexShrink: 0 },
+  // Keyboard
+  keyboard:  { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, flexShrink: 0 },
+  kbRow:     { display: 'flex', gap: 6, justifyContent: 'center' },
+  kbKey:     { flex: 1, maxWidth: 96, padding: '13px 4px', borderRadius: 10, border: '2px solid #e2e8f0', background: '#f8fafc', color: '#1e293b', fontSize: 20, fontWeight: 800, cursor: 'pointer', textAlign: 'center' as const, minWidth: 0 },
+  nextBtn:   { padding: '16px 0', borderRadius: 16, border: 'none', color: '#fff', fontSize: 20, fontWeight: 900, cursor: 'pointer', width: '100%', marginTop: 'auto', flexShrink: 0 },
 };
 
 const dur: Record<string, React.CSSProperties> = {
