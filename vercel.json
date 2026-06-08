@@ -1,5 +1,10 @@
 {
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/games", "destination": "/games.html" },
+    { "source": "/map",   "destination": "/map.html"   },
+    { "source": "/parking", "destination": "/parking.html" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite"
